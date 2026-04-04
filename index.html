@@ -3,136 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Bảng giá SPT Phú Quốc</title>
+<title>Bảng giá SPT</title>
 
 <style>
-*{box-sizing:border-box}
+body{font-family:Segoe UI;margin:0;background:#eef2f7}
+.dark{background:#1e1e2f;color:#fff}
 
-body{
-    font-family:Segoe UI;
-    background:#eef2f7;
-    margin:0;
-    padding:15px;
-}
+.container{max-width:1100px;margin:auto;padding:15px}
+.dark .container{background:#2a2a40}
 
-/* DARK */
-.dark{
-    background:#1e1e2f;
-    color:#fff;
-}
+/* TABLE DESKTOP */
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
+th{background:#4e73df;color:#fff}
 
-.container{
-    max-width:1100px;
-    margin:auto;
-    background:#fff;
-    padding:15px;
-    border-radius:10px;
-}
+input,select{padding:6px;border-radius:5px;border:1px solid #ccc;width:100%}
 
-.dark .container{
-    background:#2a2a40;
-}
-
-h2{text-align:center}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:10px;
-}
-
-th{
-    background:#4e73df;
-    color:#fff;
-}
-
-th,td{
-    padding:8px;
-    border-bottom:1px solid #ddd;
-    text-align:center;
-}
-
-input,select{
-    width:100%;
-    padding:6px;
-    border-radius:5px;
-    border:1px solid #ccc;
-    text-align:center;
-}
-
-button{
-    padding:8px 12px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-
+button{padding:8px;border:none;border-radius:6px;margin:5px;cursor:pointer}
 .add{background:#1cc88a;color:#fff}
 .del{background:#e74a3b;color:#fff}
 
-.tools{
-    margin-top:10px;
-    display:flex;
-    gap:8px;
-    justify-content:center;
-    flex-wrap:wrap;
-}
+/* CARD MOBILE */
+.card{background:#2a2a40;padding:10px;border-radius:10px;margin-bottom:10px;color:#fff}
+.row{display:flex;gap:10px}
+.row div{flex:1}
 
-.total{
-    text-align:right;
-    font-size:20px;
-    font-weight:bold;
-    margin-top:10px;
-}
+/* SWITCH */
+.desktop{display:block}
+.mobile{display:none}
 
-/* MOBILE */
+/* MOBILE MODE */
 @media(max-width:768px){
-table{
-    display:block;
-    overflow-x:auto;
-}
-input,select{
-    font-size:16px;
-}
-button{
-    font-size:14px;
-}
+.desktop{display:none}
+.mobile{display:block}
+body{background:#1e1e2f;color:#fff}
 }
 
-select optgroup{
-    font-weight:bold;
-    color:#4e73df;
-}
+.total{font-weight:bold;text-align:right;margin-top:10px}
 </style>
 </head>
 
-<body class="dark">
+<body>
 
 <div class="container">
+
 <h2>BẢNG GIÁ QUẢNG CÁO</h2>
 
+<!-- DESKTOP -->
+<div class="desktop">
 <table id="table">
 <tr>
-<th>Loại</th>
-<th>Rộng</th>
-<th>Cao</th>
-<th>SL</th>
-<th>Đơn giá</th>
-<th>Thành tiền</th>
-<th></th>
+<th>Loại</th><th>Rộng</th><th>Cao</th><th>SL</th><th>Giá</th><th>Tiền</th><th></th>
 </tr>
 </table>
+</div>
 
-<div class="tools">
-<button class="add" onclick="addRow()">➕ Thêm</button>
+<!-- MOBILE -->
+<div class="mobile" id="list"></div>
+
+<div style="text-align:center">
+<button class="add" onclick="add()">➕ Thêm</button>
 <button onclick="unlock()">🔐 Mở giá</button>
 <button onclick="toggleDark()">🌙 Dark</button>
 <button onclick="exportPDF()">📄 PDF</button>
-<button onclick="resetAll()">🧹 Reset</button>
 </div>
 
-<div class="total" id="total">Tổng: 0 đ</div>
+<div class="total" id="total">0 đ</div>
+
 </div>
 
 <script>
@@ -140,43 +77,26 @@ select optgroup{
 const PASSWORD="123";
 
 const PRICE={
-bat_trang:60000,
-bat_xam:65000,
-bat_uv:220000,
-decal_trang:150000,
-decal_trang_KQ:130000,
-decal_uv:190000,
-decal_be:220000,
-decal_be_UV:260000,
-DC_form_3mm:400000,
-DC_form_5mm:450000,
-DC_Alu:650000,
-Canvas_UV:250000,
-Backlist:250000,
-form3mm:280000,
-form5mm:320000,
+bat_trang:60000,bat_xam:65000,bat_uv:220000,
+decal_trang:150000,decal_trang_KQ:130000,
+decal_uv:190000,decal_be:220000,decal_be_UV:260000,
+DC_form_3mm:400000,DC_form_5mm:450000,
+DC_Alu:650000,Canvas_UV:250000,Backlist:250000,
+form3mm:280000,form5mm:320000,
 };
 
 let unlocked=false;
 
-function format(n){
-return Number(n).toLocaleString("vi-VN")+" đ";
-}
+function f(n){return Number(n).toLocaleString("vi-VN")+" đ"}
 
-function addRow(data={}){
-let table=document.getElementById("table");
-let row=table.insertRow();
-
-row.innerHTML=`
-<td>
+function materialSelect(){
+return `
 <select onchange="setPrice(this)">
-
 <optgroup label="BẠT">
 <option value="bat_trang">Bạt trắng</option>
 <option value="bat_xam">Bạt xám</option>
 <option value="bat_uv">Bạt UV</option>
 </optgroup>
-
 <optgroup label="DECAL">
 <option value="decal_trang">Decal trắng</option>
 <option value="decal_trang_KQ">Decal trắng KQ</option>
@@ -184,127 +104,140 @@ row.innerHTML=`
 <option value="decal_be">Decal bế</option>
 <option value="decal_be_UV">Decal bế UV</option>
 </optgroup>
-
 <optgroup label="DÁN NỀN">
 <option value="DC_form_3mm">Form 3mm + Decal</option>
 <option value="DC_form_5mm">Form 5mm + Decal</option>
 <option value="DC_Alu">Alu + Decal</option>
 </optgroup>
-
 <optgroup label="FORM">
 <option value="form3mm">Form 3mm</option>
 <option value="form5mm">Form 5mm</option>
 </optgroup>
-
 <optgroup label="KHÁC">
 <option value="Canvas_UV">Canvas UV</option>
 <option value="Backlist">Backlist Film</option>
 </optgroup>
+</select>`;
+}
 
-</select>
-</td>
+function add(data={}){
+if(window.innerWidth<768){
+addMobile(data);
+}else{
+addDesktop(data);
+}
+}
 
+/* DESKTOP */
+function addDesktop(data){
+let row=document.getElementById("table").insertRow();
+
+row.innerHTML=`
+<td>${materialSelect()}</td>
 <td><input type="number" value="${data.w||''}" oninput="save()"></td>
 <td><input type="number" value="${data.h||''}" oninput="save()"></td>
 <td><input type="number" value="${data.qty||1}" oninput="save()"></td>
 <td><input class="price" readonly></td>
 <td class="rowTotal">0</td>
-<td><button class="del" onclick="delRow(this)">X</button></td>
+<td><button class="del" onclick="del(this)">X</button></td>
 `;
 
-if(data.type) row.querySelector("select").value=data.type;
-
 setPrice(row.querySelector("select"));
-calculate();
+}
+
+/* MOBILE */
+function addMobile(data){
+let div=document.createElement("div");
+div.className="card";
+
+div.innerHTML=`
+${materialSelect()}
+<div class="row">
+<input type="number" placeholder="Rộng" value="${data.w||''}" oninput="save()">
+<input type="number" placeholder="Cao" value="${data.h||''}" oninput="save()">
+</div>
+<div class="row">
+<input type="number" value="${data.qty||1}" oninput="save()">
+<input class="price" readonly>
+</div>
+<div class="rowTotal">0 đ</div>
+<button class="del" onclick="del(this)">Xóa</button>
+`;
+
+document.getElementById("list").appendChild(div);
+
+setPrice(div.querySelector("select"));
 }
 
 function setPrice(select){
-let row=select.closest("tr");
-let price=PRICE[select.value];
+let box=select.closest("tr")||select.closest(".card");
+let p=PRICE[select.value];
 
-let input=row.querySelector(".price");
-input.dataset.real=price;
+let input=box.querySelector(".price");
+input.dataset.real=p;
 
-input.value=unlocked?format(price):"****";
+input.value=unlocked?f(p):"****";
 
 save();
-calculate();
 }
 
 function calculate(){
-let rows=document.querySelectorAll("#table tr");
 let total=0;
 
-rows.forEach((row,i)=>{
-if(i==0)return;
+document.querySelectorAll(".price").forEach(p=>{
+let box=p.closest("tr")||p.closest(".card");
 
-let w=row.children[1].children[0].value||0;
-let h=row.children[2].children[0].value||0;
-let qty=row.children[3].children[0].value||1;
-let p=row.querySelector(".price").dataset.real||0;
+let inputs=box.querySelectorAll("input");
+let w=inputs[0].value||0;
+let h=inputs[1].value||0;
+let qty=inputs[2].value||1;
 
 let m2=(w*h)/1000000;
-let t=m2*p*qty;
+let t=m2*p.dataset.real*qty;
 
-row.querySelector(".rowTotal").innerText=format(t);
+box.querySelector(".rowTotal").innerText=f(t);
 total+=t;
 });
 
-document.getElementById("total").innerText="Tổng: "+format(total);
+document.getElementById("total").innerText=f(total);
 }
 
-function delRow(btn){
-btn.closest("tr").remove();
+function del(btn){
+(btn.closest("tr")||btn.closest(".card")).remove();
 save();
-calculate();
 }
 
 function unlock(){
-let pass=prompt("Nhập mật khẩu:");
-
+let pass=prompt("Mật khẩu:");
 if(pass===PASSWORD){
 unlocked=true;
-
 document.querySelectorAll(".price").forEach(p=>{
 p.removeAttribute("readonly");
-p.value=format(p.dataset.real);
-
+p.value=f(p.dataset.real);
 p.oninput=function(){
-let num=this.value.replace(/\D/g,'');
-this.dataset.real=num;
+this.dataset.real=this.value.replace(/\D/g,'');
 calculate();
 }
 });
-}else{
-alert("Sai mật khẩu!");
-}
+}else alert("Sai!");
 }
 
-function toggleDark(){
-document.body.classList.toggle("dark");
-}
-
-function exportPDF(){
-window.print();
-}
-
-function resetAll(){
-if(confirm("Xóa hết dữ liệu?")){
-localStorage.clear();
-location.reload();
-}
-}
+function toggleDark(){document.body.classList.toggle("dark")}
+function exportPDF(){window.print()}
 
 function save(){
 let data=[];
-document.querySelectorAll("#table tr").forEach((row,i)=>{
-if(i==0)return;
+document.querySelectorAll("tr,.card").forEach((box,i)=>{
+if(box.tagName=="TR"&&i==0)return;
+
+let inputs=box.querySelectorAll("input");
+if(inputs.length<3)return;
 
 data.push({
-type:row.children[0].children[0].value,
-w:row.children[1].children[0].value,
-h:row.children[2].children[0].value,
-qty:row.children[3].children[0].value
+type:box.querySelector("select").value,
+w:inputs[0].value,
+h:inputs[1].value,
+qty:inputs[2].value
 });
 });
 
@@ -314,12 +247,9 @@ calculate();
 
 window.onload=()=>{
 let data=JSON.parse(localStorage.getItem("data")||"[]");
-
 if(data.length){
-data.forEach(d=>addRow(d));
-}else{
-addRow();
-}
+data.forEach(d=>add(d));
+}else add();
 }
 
 </script>

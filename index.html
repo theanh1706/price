@@ -3,45 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1e1e2f">
+
 <title>Bảng giá SPT</title>
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e1e2f">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
 <style>
-body{font-family:Segoe UI;margin:0;background:#eef2f7}
-.dark{background:#1e1e2f;color:#fff}
-
-.container{max-width:1100px;margin:auto;padding:15px}
-.dark .container{background:#2a2a40}
-
-/* TABLE DESKTOP */
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
-th{background:#4e73df;color:#fff}
-
-input,select{padding:6px;border-radius:5px;border:1px solid #ccc;width:100%}
-
-button{padding:8px;border:none;border-radius:6px;margin:5px;cursor:pointer}
-.add{background:#1cc88a;color:#fff}
-.del{background:#e74a3b;color:#fff}
-
-/* CARD MOBILE */
-.card{background:#2a2a40;padding:10px;border-radius:10px;margin-bottom:10px;color:#fff}
-.row{display:flex;gap:10px}
-.row div{flex:1}
-
-/* SWITCH */
-.desktop{display:block}
-.mobile{display:none}
-
-/* MOBILE MODE */
-@media(max-width:768px){
-.desktop{display:none}
-.mobile{display:block}
-body{background:#1e1e2f;color:#fff}
-}
-
-.total{font-weight:bold;text-align:right;margin-top:10px}
+body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff}
+.container{max-width:600px;margin:auto;padding:10px}
+.card{background:#2a2a40;padding:12px;border-radius:10px;margin-bottom:10px}
+input,select{width:100%;padding:10px;margin:5px 0;border-radius:6px;border:none;font-size:16px}
+button{width:100%;padding:12px;border:none;border-radius:8px;margin-top:5px;font-size:16px}
+.add{background:#1cc88a}
+.del{background:#e74a3b}
+.tool{background:#4e73df}
+.total{text-align:right;font-size:20px;margin-top:10px;font-weight:bold}
 </style>
 </head>
 
@@ -51,30 +31,21 @@ body{background:#1e1e2f;color:#fff}
 
 <h2>BẢNG GIÁ QUẢNG CÁO</h2>
 
-<!-- DESKTOP -->
-<div class="desktop">
-<table id="table">
-<tr>
-<th>Loại</th><th>Rộng</th><th>Cao</th><th>SL</th><th>Giá</th><th>Tiền</th><th></th>
-</tr>
-</table>
-</div>
+<div id="list"></div>
 
-<!-- MOBILE -->
-<div class="mobile" id="list"></div>
-
-<div style="text-align:center">
 <button class="add" onclick="add()">➕ Thêm</button>
-<button onclick="unlock()">🔐 Mở giá</button>
-<button onclick="toggleDark()">🌙 Dark</button>
-<button onclick="exportPDF()">📄 PDF</button>
-</div>
+<button class="tool" onclick="unlock()">🔐 Mở giá</button>
+<button class="tool" onclick="resetAll()">🧹 Reset</button>
 
 <div class="total" id="total">0 đ</div>
 
 </div>
 
 <script>
+
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
+}
 
 const PASSWORD="123";
 
@@ -91,8 +62,11 @@ let unlocked=false;
 
 function f(n){return Number(n).toLocaleString("vi-VN")+" đ"}
 
-function materialSelect(){
-return `
+function add(data={}){
+let div=document.createElement("div");
+div.className="card";
+
+div.innerHTML=`
 <select onchange="setPrice(this)">
 <optgroup label="BẠT">
 <option value="bat_trang">Bạt trắng</option>
@@ -119,65 +93,33 @@ return `
 <option value="Canvas_UV">Canvas UV</option>
 <option value="Backlist">Backlist Film</option>
 </optgroup>
-</select>`;
-}
+</select>
 
-function add(data={}){
-if(window.innerWidth<768){
-addMobile(data);
-}else{
-addDesktop(data);
-}
-}
-
-/* DESKTOP */
-function addDesktop(data){
-let row=document.getElementById("table").insertRow();
-
-row.innerHTML=`
-<td>${materialSelect()}</td>
-<td><input type="number" value="${data.w||''}" oninput="save()"></td>
-<td><input type="number" value="${data.h||''}" oninput="save()"></td>
-<td><input type="number" value="${data.qty||1}" oninput="save()"></td>
-<td><input class="price" readonly></td>
-<td class="rowTotal">0</td>
-<td><button class="del" onclick="del(this)">X</button></td>
-`;
-
-setPrice(row.querySelector("select"));
-}
-
-/* MOBILE */
-function addMobile(data){
-let div=document.createElement("div");
-div.className="card";
-
-div.innerHTML=`
-${materialSelect()}
-<div class="row">
 <input type="number" placeholder="Rộng" value="${data.w||''}" oninput="save()">
 <input type="number" placeholder="Cao" value="${data.h||''}" oninput="save()">
-</div>
-<div class="row">
 <input type="number" value="${data.qty||1}" oninput="save()">
+
 <input class="price" readonly>
-</div>
+
 <div class="rowTotal">0 đ</div>
+
 <button class="del" onclick="del(this)">Xóa</button>
 `;
 
 document.getElementById("list").appendChild(div);
 
+if(data.type) div.querySelector("select").value=data.type;
+
 setPrice(div.querySelector("select"));
+calculate();
 }
 
 function setPrice(select){
-let box=select.closest("tr")||select.closest(".card");
+let card=select.closest(".card");
 let p=PRICE[select.value];
 
-let input=box.querySelector(".price");
+let input=card.querySelector(".price");
 input.dataset.real=p;
-
 input.value=unlocked?f(p):"****";
 
 save();
@@ -186,18 +128,18 @@ save();
 function calculate(){
 let total=0;
 
-document.querySelectorAll(".price").forEach(p=>{
-let box=p.closest("tr")||p.closest(".card");
+document.querySelectorAll(".card").forEach(card=>{
+let inputs=card.querySelectorAll("input");
 
-let inputs=box.querySelectorAll("input");
 let w=inputs[0].value||0;
 let h=inputs[1].value||0;
 let qty=inputs[2].value||1;
+let p=card.querySelector(".price").dataset.real||0;
 
 let m2=(w*h)/1000000;
-let t=m2*p.dataset.real*qty;
+let t=m2*p*qty;
 
-box.querySelector(".rowTotal").innerText=f(t);
+card.querySelector(".rowTotal").innerText=f(t);
 total+=t;
 });
 
@@ -205,7 +147,7 @@ document.getElementById("total").innerText=f(total);
 }
 
 function del(btn){
-(btn.closest("tr")||btn.closest(".card")).remove();
+btn.closest(".card").remove();
 save();
 }
 
@@ -224,19 +166,20 @@ calculate();
 }else alert("Sai!");
 }
 
-function toggleDark(){document.body.classList.toggle("dark")}
-function exportPDF(){window.print()}
+function resetAll(){
+if(confirm("Xóa hết dữ liệu?")){
+localStorage.clear();
+location.reload();
+}
+}
 
 function save(){
 let data=[];
-document.querySelectorAll("tr,.card").forEach((box,i)=>{
-if(box.tagName=="TR"&&i==0)return;
-
-let inputs=box.querySelectorAll("input");
-if(inputs.length<3)return;
+document.querySelectorAll(".card").forEach(card=>{
+let inputs=card.querySelectorAll("input");
 
 data.push({
-type:box.querySelector("select").value,
+type:card.querySelector("select").value,
 w:inputs[0].value,
 h:inputs[1].value,
 qty:inputs[2].value

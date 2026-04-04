@@ -13,7 +13,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <style>
-  /* DESKTOP: CARD NẰM NGANG */
   @media (min-width: 769px){
     .card{
       display:flex;
@@ -44,53 +43,15 @@
     }
   }
 
-  body{
-    font-family:Segoe UI;
-    margin:0;
-    background:#1e1e2f;
-    color:#fff;
-  }
-
-  .container{
-    max-width:600px;
-    margin:auto;
-    padding:10px;
-  }
-
-  .card{
-    background:#2a2a40;
-    padding:12px;
-    border-radius:10px;
-    margin-bottom:10px;
-  }
-
-  input,select{
-    width:100%;
-    padding:10px;
-    margin:5px 0;
-    border-radius:6px;
-    border:none;
-    font-size:16px;
-  }
-
-  button{
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:8px;
-    margin-top:5px;
-    font-size:16px;
-  }
-
+  body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff}
+  .container{max-width:600px;margin:auto;padding:10px}
+  .card{background:#2a2a40;padding:12px;border-radius:10px;margin-bottom:10px}
+  input,select{width:100%;padding:10px;margin:5px 0;border-radius:6px;border:none;font-size:16px}
+  button{width:100%;padding:12px;border:none;border-radius:8px;margin-top:5px;font-size:16px}
   .add{background:#1cc88a}
   .del{background:#e74a3b}
   .tool{background:#4e73df}
-  .total{
-    text-align:right;
-    font-size:20px;
-    margin-top:10px;
-    font-weight:bold;
-  }
+  .total{text-align:right;font-size:20px;margin-top:10px;font-weight:bold}
 </style>
 </head>
 
@@ -98,15 +59,15 @@
 
 <div class="container">
 
-  <h2>BẢNG GIÁ QUẢNG CÁO</h2>
+<h2>BẢNG GIÁ QUẢNG CÁO</h2>
 
-  <div id="list"></div>
+<div id="list"></div>
 
-  <button class="add" onclick="add()">➕ Thêm</button>
-  <button class="tool" id="togglePriceBtn" onclick="togglePrice()">🔐 Mở giá</button>
-  <button class="tool" onclick="resetAll()">🧹 Reset</button>
+<button class="add" onclick="add()">➕ Thêm</button>
+<button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
+<button class="tool" onclick="resetAll()">🧹 Reset</button>
 
-  <div class="total" id="total">****</div>
+<div class="total" id="total">0 đ</div>
 
 </div>
 
@@ -116,134 +77,143 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js');
 }
 
-const PRICE = {
-  bat_trang:60000, bat_xam:65000, bat_uv:220000,
-  decal_trang:150000, decal_trang_KQ:130000,
-  decal_uv:190000, decal_be:220000, decal_be_UV:260000,
-  DC_form_3mm:400000, DC_form_5mm:450000,
-  DC_Alu:650000, Canvas_UV:250000, Backlist:250000,
-  form3mm:280000, form5mm:320000,
+const PRICE={
+  bat_trang:60000,bat_xam:65000,bat_uv:220000,
+  decal_trang:150000,decal_trang_KQ:130000,
+  decal_uv:190000,decal_be:220000,decal_be_UV:260000,
+  DC_form_3mm:400000,DC_form_5mm:450000,
+  DC_Alu:650000,Canvas_UV:250000,Backlist:250000,
+  form3mm:280000,form5mm:320000,
 };
 
-let unlocked = false;
+let unlocked=false;
 
 function f(n){
-  return Number(n || 0).toLocaleString("vi-VN") + " đ";
+  return Number(n || 0).toLocaleString("vi-VN")+" đ";
 }
 
-function applyPriceState(input){
+function showPrice(input){
   if(unlocked){
-    input.removeAttribute("readonly");
     input.value = f(input.dataset.real || 0);
-
-    input.oninput = function(){
-      this.dataset.real = this.value.replace(/\D/g, '');
-      calculate();
-      save();
-    };
-
-    input.onblur = function(){
-      this.value = f(this.dataset.real || 0);
-    };
+    input.removeAttribute("readonly");
   }else{
-    input.setAttribute("readonly", "readonly");
     input.value = "****";
-    input.oninput = null;
-    input.onblur = null;
+    input.setAttribute("readonly", true);
   }
 }
 
-function add(data = {}){
-  let div = document.createElement("div");
-  div.className = "card";
+function enablePriceEdit(input){
+  input.onfocus = function(){
+    if(!unlocked) return;
+    this.value = this.dataset.real || "";
+  };
 
-  div.innerHTML = `
-    <select onchange="setPrice(this)">
-      <optgroup label="BẠT">
-        <option value="bat_trang">Bạt trắng</option>
-        <option value="bat_xam">Bạt xám</option>
-        <option value="bat_uv">Bạt UV</option>
-      </optgroup>
-      <optgroup label="DECAL">
-        <option value="decal_trang">Decal trắng</option>
-        <option value="decal_trang_KQ">Decal trắng KQ</option>
-        <option value="decal_uv">Decal UV</option>
-        <option value="decal_be">Decal bế</option>
-        <option value="decal_be_UV">Decal bế UV</option>
-      </optgroup>
-      <optgroup label="DÁN NỀN">
-        <option value="DC_form_3mm">Form 3mm + Decal</option>
-        <option value="DC_form_5mm">Form 5mm + Decal</option>
-        <option value="DC_Alu">Alu + Decal</option>
-      </optgroup>
-      <optgroup label="FORM">
-        <option value="form3mm">Form 3mm</option>
-        <option value="form5mm">Form 5mm</option>
-      </optgroup>
-      <optgroup label="KHÁC">
-        <option value="Canvas_UV">Canvas UV</option>
-        <option value="Backlist">Backlist Film</option>
-      </optgroup>
-    </select>
+  input.oninput = function(){
+    if(!unlocked) return;
+    this.value = this.value.replace(/\D/g,'');
+    this.dataset.real = this.value || 0;
+    calculate();
+  };
 
-    <input type="number" placeholder="Rộng" value="${data.w || ''}" oninput="save()">
-    <input type="number" placeholder="Cao" value="${data.h || ''}" oninput="save()">
-    <input type="number" value="${data.qty || 1}" oninput="save()">
+  input.onblur = function(){
+    if(!unlocked) return;
+    this.dataset.real = this.value || 0;
+    this.value = f(this.dataset.real);
+    save();
+  };
+}
 
-    <input class="price" readonly>
+function add(data={}){
+  let div=document.createElement("div");
+  div.className="card";
 
-    <div class="rowTotal">****</div>
+  div.innerHTML=`
+  <select onchange="setPrice(this)">
+    <optgroup label="BẠT">
+      <option value="bat_trang">Bạt trắng</option>
+      <option value="bat_xam">Bạt xám</option>
+      <option value="bat_uv">Bạt UV</option>
+    </optgroup>
+    <optgroup label="DECAL">
+      <option value="decal_trang">Decal trắng</option>
+      <option value="decal_trang_KQ">Decal trắng KQ</option>
+      <option value="decal_uv">Decal UV</option>
+      <option value="decal_be">Decal bế</option>
+      <option value="decal_be_UV">Decal bế UV</option>
+    </optgroup>
+    <optgroup label="DÁN NỀN">
+      <option value="DC_form_3mm">Form 3mm + Decal</option>
+      <option value="DC_form_5mm">Form 5mm + Decal</option>
+      <option value="DC_Alu">Alu + Decal</option>
+    </optgroup>
+    <optgroup label="FORM">
+      <option value="form3mm">Form 3mm</option>
+      <option value="form5mm">Form 5mm</option>
+    </optgroup>
+    <optgroup label="KHÁC">
+      <option value="Canvas_UV">Canvas UV</option>
+      <option value="Backlist">Backlist Film</option>
+    </optgroup>
+  </select>
 
-    <button class="del" onclick="del(this)">Xóa</button>
+  <input type="number" placeholder="Rộng" value="${data.w||''}" oninput="save()">
+  <input type="number" placeholder="Cao" value="${data.h||''}" oninput="save()">
+  <input type="number" value="${data.qty||1}" oninput="save()">
+
+  <input class="price">
+
+  <div class="rowTotal">0 đ</div>
+
+  <button class="del" onclick="del(this)">Xóa</button>
   `;
 
   document.getElementById("list").appendChild(div);
 
-  if(data.type){
-    div.querySelector("select").value = data.type;
-  }
+  if(data.type) div.querySelector("select").value=data.type;
 
-  setPrice(div.querySelector("select"));
+  let priceInput = div.querySelector(".price");
+  enablePriceEdit(priceInput);
 
-  if(data.price){
-    let priceInput = div.querySelector(".price");
+  setPrice(div.querySelector("select"), false);
+
+  if(data.price !== undefined){
     priceInput.dataset.real = data.price;
-    applyPriceState(priceInput);
+    showPrice(priceInput);
   }
 
   calculate();
 }
 
-function setPrice(select){
-  let card = select.closest(".card");
-  let p = PRICE[select.value];
-  let input = card.querySelector(".price");
+function setPrice(select, doSave=true){
+  let card=select.closest(".card");
+  let p=PRICE[select.value];
 
-  input.dataset.real = p;
-  applyPriceState(input);
+  let input=card.querySelector(".price");
+  input.dataset.real=p;
+  showPrice(input);
 
-  save();
+  if(doSave) save();
 }
 
 function calculate(){
-  let total = 0;
+  let total=0;
 
-  document.querySelectorAll(".card").forEach(card => {
-    let inputs = card.querySelectorAll("input");
+  document.querySelectorAll(".card").forEach(card=>{
+    let inputs=card.querySelectorAll("input");
 
-    let w = Number(inputs[0].value) || 0;
-    let h = Number(inputs[1].value) || 0;
-    let qty = Number(inputs[2].value) || 1;
-    let p = Number(card.querySelector(".price").dataset.real) || 0;
+    let w=Number(inputs[0].value)||0;
+    let h=Number(inputs[1].value)||0;
+    let qty=Number(inputs[2].value)||1;
+    let p=Number(card.querySelector(".price").dataset.real)||0;
 
-    let m2 = (w * h) / 1000000;
-    let t = m2 * p * qty;
+    let m2=(w*h)/1000000;
+    let t=m2*p*qty;
 
-    card.querySelector(".rowTotal").innerText = unlocked ? f(t) : "****";
-    total += t;
+    card.querySelector(".rowTotal").innerText=f(t);
+    total+=t;
   });
 
-  document.getElementById("total").innerText = unlocked ? f(total) : "****";
+  document.getElementById("total").innerText=f(total);
 }
 
 function del(btn){
@@ -252,17 +222,14 @@ function del(btn){
 }
 
 function togglePrice(){
-  unlocked = !unlocked;
+  unlocked=!unlocked;
 
-  document.querySelectorAll(".price").forEach(input => {
-    applyPriceState(input);
+  document.querySelectorAll(".price").forEach(p=>{
+    showPrice(p);
   });
 
-  document.getElementById("togglePriceBtn").innerText = unlocked
-    ? "🔒 Đóng giá"
-    : "🔐 Mở giá";
-
-  calculate();
+  document.getElementById("toggleBtn").innerText =
+    unlocked ? "🔒 Đóng giá" : "🔐 Mở giá";
 }
 
 function resetAll(){
@@ -273,34 +240,32 @@ function resetAll(){
 }
 
 function save(){
-  let data = [];
+  let data=[];
 
-  document.querySelectorAll(".card").forEach(card => {
-    let inputs = card.querySelectorAll("input");
+  document.querySelectorAll(".card").forEach(card=>{
+    let inputs=card.querySelectorAll("input");
 
     data.push({
-      type: card.querySelector("select").value,
-      w: inputs[0].value,
-      h: inputs[1].value,
-      qty: inputs[2].value,
-      price: card.querySelector(".price").dataset.real || 0
+      type:card.querySelector("select").value,
+      w:inputs[0].value,
+      h:inputs[1].value,
+      qty:inputs[2].value,
+      price:card.querySelector(".price").dataset.real || 0
     });
   });
 
-  localStorage.setItem("data", JSON.stringify(data));
+  localStorage.setItem("data",JSON.stringify(data));
   calculate();
 }
 
-window.onload = () => {
-  let data = JSON.parse(localStorage.getItem("data") || "[]");
+window.onload=()=>{
+  let data=JSON.parse(localStorage.getItem("data")||"[]");
 
   if(data.length){
-    data.forEach(d => add(d));
+    data.forEach(d=>add(d));
   }else{
     add();
   }
-
-  document.getElementById("togglePriceBtn").innerText = "🔐 Mở giá";
 };
 
 </script>

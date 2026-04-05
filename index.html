@@ -3,64 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảng giá SPT - Compact</title>
 
-<title>Bảng giá SPT</title>
-
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1e1e2f">
 <link rel="apple-touch-icon" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <style>
-  @media (min-width: 769px){
-    .card{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
+body{
+  font-family:Segoe UI;
+  margin:0;
+  background:#1e1e2f;
+  color:#fff;
+}
+.container{
+  max-width:600px;
+  margin:auto;
+  padding:10px;
+}
+h2{text-align:center;margin-bottom:10px;}
+button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointer}
+.add{background:#1cc88a;color:#fff;}
+.tool{background:#4e73df;color:#fff;}
+.del{background:#e74a3b;color:#fff;}
+.total{text-align:right;font-size:18px;margin-top:8px;font-weight:bold}
 
-    .card select{
-      width:180px;
-    }
+/* Compact card mobile */
+.card{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:#2a2a40;
+  padding:4px;
+  border-radius:6px;
+  margin-bottom:4px;
+  font-size:13px;
+  min-height:40px;
+}
 
-    .card input{
-      width:90px;
-    }
+.card select, .card input.price{
+  flex:1 1 35%;
+  min-width:50px;
+  padding:3px;
+  font-size:13px;
+}
 
-    .price{
-      width:120px;
-    }
+.card input[type="number"]{
+  flex:1 1 15%;
+  min-width:30px;
+  padding:3px;
+  font-size:13px;
+}
 
-    .rowTotal{
-      width:140px;
-      font-weight:bold;
-    }
+.card .rowTotal{
+  flex:1 1 25%;
+  text-align:right;
+  font-weight:bold;
+}
 
-    .del{
-      width:auto;
-      padding:8px 12px;
-    }
+.card button.del{
+  flex:1 1 10%;
+  min-width:30px;
+  padding:2px 4px;
+  font-size:12px;
+}
+
+/* Desktop: giữ layout lớn */
+@media (min-width: 769px){
+  .card{
+    display:flex;
+    flex-wrap:nowrap;
+    gap:10px;
+    padding:12px;
+    font-size:16px;
   }
-
-  body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff}
-  .container{max-width:600px;margin:auto;padding:10px}
-  .card{background:#2a2a40;padding:12px;border-radius:10px;margin-bottom:10px}
-  input,select{width:100%;padding:10px;margin:5px 0;border-radius:6px;border:none;font-size:16px}
-  button{width:100%;padding:12px;border:none;border-radius:8px;margin-top:5px;font-size:16px}
-  .add{background:#1cc88a}
-  .del{background:#e74a3b}
-  .tool{background:#4e73df}
-  .total{text-align:right;font-size:20px;margin-top:10px;font-weight:bold}
+  .card select{width:180px;}
+  .card input{width:90px;}
+  .price{width:120px;}
+  .rowTotal{width:140px;font-weight:bold;}
+  .del{width:auto;padding:8px 12px;font-size:16px;}
+}
 </style>
 </head>
-
 <body>
 
 <div class="container">
-
-<h2>BẢNG GIÁ QUẢNG CÁO</h2>
-
+<h2>BẢNG GIÁ QUẢNG CÁO STP</h2>
 <div id="list"></div>
 
 <button class="add" onclick="add()">➕ Thêm</button>
@@ -68,14 +97,10 @@
 <button class="tool" onclick="resetAll()">🧹 Reset</button>
 
 <div class="total" id="total">0 đ</div>
-
 </div>
 
 <script>
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js');
-}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js');}
 
 const PRICE={
   bat_trang:60000,bat_xam:65000,bat_uv:220000,
@@ -88,39 +113,22 @@ const PRICE={
 
 let unlocked=false;
 
-function f(n){
-  return Number(n || 0).toLocaleString("vi-VN")+" đ";
-}
+function f(n){return Number(n||0).toLocaleString("vi-VN")+" đ";}
 
 function showPrice(input){
   if(unlocked){
-    input.value = f(input.dataset.real || 0);
+    input.value = f(input.dataset.real||0);
     input.removeAttribute("readonly");
   }else{
     input.value = "****";
-    input.setAttribute("readonly", true);
+    input.setAttribute("readonly",true);
   }
 }
 
 function enablePriceEdit(input){
-  input.onfocus = function(){
-    if(!unlocked) return;
-    this.value = this.dataset.real || "";
-  };
-
-  input.oninput = function(){
-    if(!unlocked) return;
-    this.value = this.value.replace(/\D/g,'');
-    this.dataset.real = this.value || 0;
-    calculate();
-  };
-
-  input.onblur = function(){
-    if(!unlocked) return;
-    this.dataset.real = this.value || 0;
-    this.value = f(this.dataset.real);
-    save();
-  };
+  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset.real||"";};
+  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset.real=this.value||0; calculate();};
+  input.onblur=function(){if(!unlocked) return; this.dataset.real=this.value||0; this.value=f(this.dataset.real); save();};
 }
 
 function add(data={}){
@@ -159,12 +167,9 @@ function add(data={}){
   <input type="number" placeholder="Rộng" value="${data.w||''}" oninput="save()">
   <input type="number" placeholder="Cao" value="${data.h||''}" oninput="save()">
   <input type="number" value="${data.qty||1}" oninput="save()">
-
   <input class="price">
-
   <div class="rowTotal">0 đ</div>
-
-  <button class="del" onclick="del(this)">Xóa</button>
+  <button class="del" onclick="del(this)">X</button>
   `;
 
   document.getElementById("list").appendChild(div);
@@ -173,101 +178,59 @@ function add(data={}){
 
   let priceInput = div.querySelector(".price");
   enablePriceEdit(priceInput);
-
   setPrice(div.querySelector("select"), false);
 
-  if(data.price !== undefined){
-    priceInput.dataset.real = data.price;
-    showPrice(priceInput);
-  }
-
+  if(data.price!==undefined){priceInput.dataset.real=data.price; showPrice(priceInput);}
   calculate();
 }
 
 function setPrice(select, doSave=true){
   let card=select.closest(".card");
   let p=PRICE[select.value];
-
   let input=card.querySelector(".price");
   input.dataset.real=p;
   showPrice(input);
-
   if(doSave) save();
 }
 
 function calculate(){
   let total=0;
-
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
-
     let w=Number(inputs[0].value)||0;
     let h=Number(inputs[1].value)||0;
     let qty=Number(inputs[2].value)||1;
     let p=Number(card.querySelector(".price").dataset.real)||0;
-
     let m2=(w*h)/1000000;
     let t=m2*p*qty;
-
     card.querySelector(".rowTotal").innerText=f(t);
     total+=t;
   });
-
   document.getElementById("total").innerText=f(total);
 }
 
-function del(btn){
-  btn.closest(".card").remove();
-  save();
-}
-
-function togglePrice(){
-  unlocked=!unlocked;
-
-  document.querySelectorAll(".price").forEach(p=>{
-    showPrice(p);
-  });
-
-  document.getElementById("toggleBtn").innerText =
-    unlocked ? "🔒 Đóng giá" : "🔐 Mở giá";
-}
-
-function resetAll(){
-  if(confirm("Xóa hết dữ liệu?")){
-    localStorage.clear();
-    location.reload();
-  }
-}
-
+function del(btn){btn.closest(".card").remove(); save();}
+function togglePrice(){unlocked=!unlocked; document.querySelectorAll(".price").forEach(p=>showPrice(p)); document.getElementById("toggleBtn").innerText=unlocked?"🔒 Đóng giá":"🔐 Mở giá";}
+function resetAll(){if(confirm("Xóa hết dữ liệu?")){localStorage.clear(); location.reload();}}
 function save(){
   let data=[];
-
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
-
     data.push({
       type:card.querySelector("select").value,
       w:inputs[0].value,
       h:inputs[1].value,
       qty:inputs[2].value,
-      price:card.querySelector(".price").dataset.real || 0
+      price:card.querySelector(".price").dataset.real||0
     });
   });
-
   localStorage.setItem("data",JSON.stringify(data));
   calculate();
 }
-
 window.onload=()=>{
   let data=JSON.parse(localStorage.getItem("data")||"[]");
-
-  if(data.length){
-    data.forEach(d=>add(d));
-  }else{
-    add();
-  }
+  if(data.length){data.forEach(d=>add(d));}else{add();}
 };
-
 </script>
 
 </body>

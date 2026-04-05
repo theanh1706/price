@@ -27,6 +27,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 .card input[type="number"]{flex:1 1 15%;min-width:30px;padding:3px;font-size:13px;}
 .card .rowTotal{flex:1 1 25%;text-align:right;font-weight:bold;}
 .card button.del{flex:1 1 10%;min-width:30px;padding:2px 4px;font-size:12px;}
+.default-item{background:#444466;padding:8px;margin:4px 0;border-radius:6px;font-size:14px;display:flex;justify-content:space-between;}
 @media (min-width: 769px){
   .card{display:flex;flex-wrap:nowrap;gap:10px;padding:12px;font-size:16px;}
   .card select{width:180px;}
@@ -34,6 +35,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   .price{width:120px;}
   .rowTotal{width:140px;font-weight:bold;}
   .del{width:auto;padding:8px 12px;font-size:16px;}
+  .default-item{font-size:16px;padding:12px;}
 }
 </style>
 </head>
@@ -44,10 +46,11 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 <div style="text-align:center;margin-bottom:8px;">
   <button class="tab-btn tab-active" id="tabKT" onclick="switchTab('KT')">KT</button>
   <button class="tab-btn tab-inactive" id="tabGT" onclick="switchTab('GT')">GT</button>
+  <button class="tab-btn tab-inactive" id="tabDEFAULT" onclick="switchTab('DEFAULT')">DEFAULT</button>
 </div>
 <div id="list"></div>
 
-<button class="add" onclick="add()">➕ Thêm</button>
+<button class="add" class="add" onclick="add()">➕ Thêm</button>
 <button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
 <button class="tool" onclick="resetAll()">🧹 Reset</button>
 
@@ -70,7 +73,7 @@ const PRICE_KT={
   form3mm:240000,form5mm:320000,form8mm:380000,
 };
 
-// Giá GT mới
+// Giá GT
 const PRICE_GT={
   bat_trang:55000,bat_xam:65000,bat_thuong_in_uv:120000,
   bat_xam_thuong_in_uv:150000,bat_KG_in_thuong:120000,
@@ -83,32 +86,24 @@ const PRICE_GT={
   form3mm:240000,form5mm:320000,form8mm:380000,
 };
 
+// Giá DEFAULT hiển thị cố định
+const DEFAULT_LIST=[
+  {name:"A4 in màu ép plastic", price:30000},
+  {name:"A4 in màu không ép", price:15000},
+  {name:"Menu A4 form5mm", price:100000},
+  {name:"Menu A3 form5mm", price:150000},
+];
+
 let unlocked=false;
 let currentTab='KT';
 
 function f(n){return Number(n||0).toLocaleString("vi-VN")+" đ";}
 
-function showPrice(input){
-  if(unlocked){
-    input.value = f(input.dataset[currentTab]||0);
-    input.removeAttribute("readonly");
-  }else{
-    input.value = "****";
-    input.setAttribute("readonly",true);
-  }
-}
-
-function enablePriceEdit(input){
-  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset[currentTab]||"";};
-  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset[currentTab]=this.value||0; calculate();};
-  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); save();};
-}
-
 function add(data={}){
+  if(currentTab==='DEFAULT') return; // Không thêm khi DEFAULT
   let div=document.createElement("div");
   div.className="card";
 
-  // LIST giống nhau cho cả KT và GT
   div.innerHTML=`
   <select onchange="setPrice(this)">
     <optgroup label="BẠT">
@@ -126,7 +121,7 @@ function add(data={}){
       <option value="decal_trang_trong_pipi_UV">Decal trắng/trong/pipi UV</option>
       <option value="decal_trang_trong_UV_be">Decal trắng/trong UV bế</option>
       <option value="decal_den_UV">Decal đen UV</option>
-	  <option value="cat_chu_decal">Cắt Chữ Decal</option>
+      <option value="cat_chu_decal">Cắt Chữ Decal</option>
     </optgroup>
     <optgroup label="DC DÁN">
       <option value="DC_form_3mm">Form 3mm + Decal</option>
@@ -159,13 +154,33 @@ function add(data={}){
   let priceInput = div.querySelector(".price");
   enablePriceEdit(priceInput);
 
-  // Cập nhật giá theo KT và GT
   let selectVal = div.querySelector("select").value;
   priceInput.dataset.KT = PRICE_KT[selectVal] || 0;
   priceInput.dataset.GT = PRICE_GT[selectVal] || 0;
 
   showPrice(priceInput);
   calculate();
+}
+
+function showPrice(input){
+  if(currentTab==='DEFAULT'){
+    // Không dùng ô input, hiển thị DEFAULT LIST
+    renderDefaultList();
+  } else {
+    if(unlocked){
+      input.value = f(input.dataset[currentTab] || 0);
+      input.removeAttribute("readonly");
+    }else{
+      input.value = "****";
+      input.setAttribute("readonly",true);
+    }
+  }
+}
+
+function enablePriceEdit(input){
+  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset[currentTab]||"";};
+  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset[currentTab]=this.value||0; calculate();};
+  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); save();};
 }
 
 function setPrice(select, doSave=true){
@@ -179,6 +194,7 @@ function setPrice(select, doSave=true){
 }
 
 function calculate(){
+  if(currentTab==='DEFAULT') return; // Không tính tổng khi DEFAULT
   let total=0;
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
@@ -198,6 +214,7 @@ function del(btn){btn.closest(".card").remove(); save();}
 function togglePrice(){unlocked=!unlocked; document.querySelectorAll(".price").forEach(p=>showPrice(p)); document.getElementById("toggleBtn").innerText=unlocked?"🔒 Đóng giá":"🔐 Mở giá";}
 function resetAll(){if(confirm("Xóa hết dữ liệu?")){localStorage.clear(); location.reload();}}
 function save(){
+  if(currentTab==='DEFAULT') return;
   let data=[];
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
@@ -215,17 +232,38 @@ function save(){
   calculate();
 }
 
+function renderDefaultList(){
+  let listDiv=document.getElementById("list");
+  listDiv.innerHTML='';
+  DEFAULT_LIST.forEach(item=>{
+    let div=document.createElement("div");
+    div.className='default-item';
+    div.innerHTML=`<span>${item.name}</span><span>${f(item.price)}</span>`;
+    listDiv.appendChild(div);
+  });
+}
+
 function switchTab(tab){
   currentTab=tab;
   document.getElementById("tabKT").className = tab==='KT'?'tab-btn tab-active':'tab-btn tab-inactive';
   document.getElementById("tabGT").className = tab==='GT'?'tab-btn tab-active':'tab-btn tab-inactive';
-  document.querySelectorAll(".price").forEach(p=>showPrice(p));
-  calculate();
+  document.getElementById("tabDEFAULT").className = tab==='DEFAULT'?'tab-btn tab-active':'tab-btn tab-inactive';
+  if(tab==='DEFAULT'){
+    renderDefaultList();
+    document.getElementById("total").innerText='';
+  } else {
+    let data=JSON.parse(localStorage.getItem("data")||"[]");
+    document.getElementById("list").innerHTML='';
+    if(data.length){data.forEach(d=>add(d));}else{add();}
+    calculate();
+  }
 }
 
 window.onload=()=>{
-  let data=JSON.parse(localStorage.getItem("data")||"[]");
-  if(data.length){data.forEach(d=>add(d));}else{add();}
+  if(currentTab!=='DEFAULT'){
+    let data=JSON.parse(localStorage.getItem("data")||"[]");
+    if(data.length){data.forEach(d=>add(d));}else{add();}
+  }
 };
 </script>
 

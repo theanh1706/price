@@ -11,73 +11,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 
 <style>
-body{
-  font-family:Segoe UI;
-  margin:0;
-  background:#1e1e2f;
-  color:#fff;
-}
-.container{
-  max-width:600px;
-  margin:auto;
-  padding:10px;
-}
+body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff;}
+.container{max-width:600px;margin:auto;padding:10px;}
 h2{text-align:center;margin-bottom:10px;}
 button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointer}
 .add{background:#1cc88a;color:#fff;}
 .tool{background:#4e73df;color:#fff;}
 .del{background:#e74a3b;color:#fff;}
 .total{text-align:right;font-size:18px;margin-top:8px;font-weight:bold}
-
-/* Compact card mobile */
-.card{
-  display:flex;
-  align-items:center;
-  gap:4px;
-  background:#2a2a40;
-  padding:4px;
-  border-radius:6px;
-  margin-bottom:4px;
-  font-size:13px;
-  min-height:40px;
-}
-
-.card select, .card input.price{
-  flex:1 1 35%;
-  min-width:50px;
-  padding:3px;
-  font-size:13px;
-}
-
-.card input[type="number"]{
-  flex:1 1 15%;
-  min-width:30px;
-  padding:3px;
-  font-size:13px;
-}
-
-.card .rowTotal{
-  flex:1 1 25%;
-  text-align:right;
-  font-weight:bold;
-}
-
-.card button.del{
-  flex:1 1 10%;
-  min-width:30px;
-  padding:2px 4px;
-  font-size:12px;
-}
-
-/* Desktop: giữ layout lớn */
+.tab-btn{padding:6px 12px;margin-right:5px;font-weight:bold;}
+.tab-active{background:#ffb400;color:#000;}
+.tab-inactive{background:#6c757d;color:#fff;}
+.card{display:flex;align-items:center;gap:4px;background:#2a2a40;padding:4px;border-radius:6px;margin-bottom:4px;font-size:13px;min-height:40px;}
+.card select, .card input.price{flex:1 1 35%;min-width:50px;padding:3px;font-size:13px;}
+.card input[type="number"]{flex:1 1 15%;min-width:30px;padding:3px;font-size:13px;}
+.card .rowTotal{flex:1 1 25%;text-align:right;font-weight:bold;}
+.card button.del{flex:1 1 10%;min-width:30px;padding:2px 4px;font-size:12px;}
 @media (min-width: 769px){
-  .card{
-    display:flex;
-    flex-wrap:nowrap;
-    gap:10px;
-    padding:12px;
-    font-size:16px;
-  }
+  .card{display:flex;flex-wrap:nowrap;gap:10px;padding:12px;font-size:16px;}
   .card select{width:180px;}
   .card input{width:90px;}
   .price{width:120px;}
@@ -90,6 +41,10 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 
 <div class="container">
 <h2>BẢNG GIÁ QUẢNG CÁO STP</h2>
+<div style="text-align:center;margin-bottom:8px;">
+  <button class="tab-btn tab-active" id="tabKT" onclick="switchTab('KT')">KT</button>
+  <button class="tab-btn tab-inactive" id="tabGT" onclick="switchTab('GT')">GT</button>
+</div>
 <div id="list"></div>
 
 <button class="add" onclick="add()">➕ Thêm</button>
@@ -102,22 +57,40 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js');}
 
-const PRICE={
-  bat_trang:60000,bat_xam:65000,bat_uv:220000,
-  decal_trang:150000,decal_trang_KQ:130000,
-  decal_uv:190000,decal_be:220000,decal_be_UV:260000,
-  DC_form_3mm:400000,DC_form_5mm:450000,
-  DC_Alu:650000,Canvas_UV:250000,Backlist:250000,
-  form3mm:280000,form5mm:320000,
+// Giá KT
+const PRICE_KT={
+  bat_trang:60000,bat_xam:70000,bat_thuong_in_uv:130000,
+  bat_xam_thuong_in_uv:160000,bat_KG_in_thuong:130000,
+  bat_UV_ko_xuyen_den:220000,bat_UV_xuyen_den:280000,
+  decal_pipi_can_man:150000,decal_be:220000,
+  decal_trang_trong_pipi_UV:200000,decal_trang_trong_UV_be:270000,
+  decal_den_UV:200000,
+  DC_form_3mm:390000,DC_form_5mm:470000,
+  DC_Alu:520000,Canvas_UV:250000,Backlist:250000,
+  form3mm:240000,form5mm:320000,form8mm:380000,
+};
+
+// Giá GT mới
+const PRICE_GT={
+  bat_trang:55000,bat_xam:65000,bat_thuong_in_uv:120000,
+  bat_xam_thuong_in_uv:150000,bat_KG_in_thuong:120000,
+  bat_UV_ko_xuyen_den:210000,bat_UV_xuyen_den:270000,
+  decal_pipi_can_man:140000,decal_be:200000,
+  decal_trang_trong_pipi_UV:190000,decal_trang_trong_UV_be:260000,
+  decal_den_UV:190000,
+  DC_form_3mm:350000,DC_form_5mm:400000,
+  DC_Alu:520000,Canvas_UV:250000,Backlist:250000,
+  form3mm:240000,form5mm:320000,form8mm:380000,
 };
 
 let unlocked=false;
+let currentTab='KT';
 
 function f(n){return Number(n||0).toLocaleString("vi-VN")+" đ";}
 
 function showPrice(input){
   if(unlocked){
-    input.value = f(input.dataset.real||0);
+    input.value = f(input.dataset[currentTab]||0);
     input.removeAttribute("readonly");
   }else{
     input.value = "****";
@@ -126,30 +99,35 @@ function showPrice(input){
 }
 
 function enablePriceEdit(input){
-  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset.real||"";};
-  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset.real=this.value||0; calculate();};
-  input.onblur=function(){if(!unlocked) return; this.dataset.real=this.value||0; this.value=f(this.dataset.real); save();};
+  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset[currentTab]||"";};
+  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset[currentTab]=this.value||0; calculate();};
+  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); save();};
 }
 
 function add(data={}){
   let div=document.createElement("div");
   div.className="card";
 
+  // LIST giống nhau cho cả KT và GT
   div.innerHTML=`
   <select onchange="setPrice(this)">
     <optgroup label="BẠT">
       <option value="bat_trang">Bạt trắng</option>
       <option value="bat_xam">Bạt xám</option>
-      <option value="bat_uv">Bạt UV</option>
+      <option value="bat_thuong_in_uv">Bạt thường in UV</option>
+      <option value="bat_xam_thuong_in_uv">Bạt xám thường in UV</option>
+      <option value="bat_KG_in_thuong">Bạt KG in thường</option>
+      <option value="bat_UV_ko_xuyen_den">Bạt KG UV không xuyên đèn</option>
+      <option value="bat_UV_xuyen_den">Bạt KG UV xuyên đèn</option>
     </optgroup>
     <optgroup label="DECAL">
-      <option value="decal_trang">Decal trắng</option>
-      <option value="decal_trang_KQ">Decal trắng KQ</option>
-      <option value="decal_uv">Decal UV</option>
+      <option value="decal_pipi_can_man">Decal/pipi cán màng</option>
       <option value="decal_be">Decal bế</option>
-      <option value="decal_be_UV">Decal bế UV</option>
+      <option value="decal_trang_trong_pipi_UV">Decal trắng/trong/pipi UV</option>
+      <option value="decal_trang_trong_UV_be">Decal trắng/trong UV bế</option>
+      <option value="decal_den_UV">Decal đen UV</option>
     </optgroup>
-    <optgroup label="DÁN NỀN">
+    <optgroup label="DC DÁN">
       <option value="DC_form_3mm">Form 3mm + Decal</option>
       <option value="DC_form_5mm">Form 5mm + Decal</option>
       <option value="DC_Alu">Alu + Decal</option>
@@ -157,6 +135,7 @@ function add(data={}){
     <optgroup label="FORM">
       <option value="form3mm">Form 3mm</option>
       <option value="form5mm">Form 5mm</option>
+      <option value="form8mm">Form 8mm</option>
     </optgroup>
     <optgroup label="KHÁC">
       <option value="Canvas_UV">Canvas UV</option>
@@ -178,17 +157,22 @@ function add(data={}){
 
   let priceInput = div.querySelector(".price");
   enablePriceEdit(priceInput);
-  setPrice(div.querySelector("select"), false);
 
-  if(data.price!==undefined){priceInput.dataset.real=data.price; showPrice(priceInput);}
+  // Cập nhật giá theo KT và GT
+  let selectVal = div.querySelector("select").value;
+  priceInput.dataset.KT = PRICE_KT[selectVal] || 0;
+  priceInput.dataset.GT = PRICE_GT[selectVal] || 0;
+
+  showPrice(priceInput);
   calculate();
 }
 
 function setPrice(select, doSave=true){
   let card=select.closest(".card");
-  let p=PRICE[select.value];
   let input=card.querySelector(".price");
-  input.dataset.real=p;
+  let val = select.value;
+  input.dataset.KT = PRICE_KT[val] || 0;
+  input.dataset.GT = PRICE_GT[val] || 0;
   showPrice(input);
   if(doSave) save();
 }
@@ -200,7 +184,7 @@ function calculate(){
     let w=Number(inputs[0].value)||0;
     let h=Number(inputs[1].value)||0;
     let qty=Number(inputs[2].value)||1;
-    let p=Number(card.querySelector(".price").dataset.real)||0;
+    let p=Number(card.querySelector(".price").dataset[currentTab])||0;
     let m2=(w*h)/1000000;
     let t=m2*p*qty;
     card.querySelector(".rowTotal").innerText=f(t);
@@ -216,17 +200,28 @@ function save(){
   let data=[];
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
+    let priceInput = card.querySelector(".price");
     data.push({
       type:card.querySelector("select").value,
       w:inputs[0].value,
       h:inputs[1].value,
       qty:inputs[2].value,
-      price:card.querySelector(".price").dataset.real||0
+      KT:priceInput.dataset.KT||0,
+      GT:priceInput.dataset.GT||0
     });
   });
   localStorage.setItem("data",JSON.stringify(data));
   calculate();
 }
+
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById("tabKT").className = tab==='KT'?'tab-btn tab-active':'tab-btn tab-inactive';
+  document.getElementById("tabGT").className = tab==='GT'?'tab-btn tab-active':'tab-btn tab-inactive';
+  document.querySelectorAll(".price").forEach(p=>showPrice(p));
+  calculate();
+}
+
 window.onload=()=>{
   let data=JSON.parse(localStorage.getItem("data")||"[]");
   if(data.length){data.forEach(d=>add(d));}else{add();}

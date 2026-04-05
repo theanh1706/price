@@ -1,6 +1,6 @@
 {
-  "name": "Bảng giá SPT",
-  "short_name": "SPT",
+  "name": "Bảng giá STP",
+  "short_name": "STP",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#1e1e2f",

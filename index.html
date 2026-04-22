@@ -40,10 +40,19 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 .order-card .meta{font-size:13px;color:#ddd;margin-top:4px;line-height:1.5;}
 .order-card .items{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;line-height:1.55;}
 .order-card .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.order-card .mini-btn{padding:6px 10px;font-size:13px;border-radius:6px;}
+.order-card .mini-btn{padding:6px 10px;font-size:13px;}
 .empty-note{opacity:.8;font-size:13px;}
 .summary-line{margin-top:6px;font-size:13px;color:#eaeaea;}
 .search-input{width:100%;box-sizing:border-box;padding:10px;border:none;border-radius:8px;font-size:14px;margin:8px 0 10px 0;}
+.editing-note{
+  margin-top:8px;
+  padding:10px;
+  border-radius:8px;
+  background:#5a3f00;
+  color:#fff3cd;
+  font-size:13px;
+  display:none;
+}
 @media (max-width: 768px){
   .customer-grid{grid-template-columns:1fr;}
 }
@@ -75,6 +84,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
     <input id="orderCode" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Nhập mã đơn hàng (chỉ số)">
   </div>
   <div class="summary-line">Sau khi tính tiền xong, bấm <b>Lưu đơn</b> để lưu lại mã đơn, tên khách, tổng tiền và chi tiết đơn hàng.</div>
+  <div id="editingNote" class="editing-note"></div>
 </div>
 
 <div id="list"></div>
@@ -82,7 +92,8 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 <div class="action-row">
   <button class="add" onclick="add()">➕ Thêm</button>
   <button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
-  <button class="save-order" onclick="saveOrder()">💾 Lưu đơn</button>
+  <button class="save-order" id="saveOrderBtn" onclick="saveOrder()">💾 Lưu đơn</button>
+  <button class="tool" onclick="cancelEdit()">↩ Hủy sửa</button>
   <button class="tool" onclick="resetAll()">🧹 Reset</button>
 </div>
 
@@ -158,6 +169,7 @@ const DEFAULT_LIST=[
 
 let unlocked=false;
 let currentTab='KT';
+let editingOrderId=null;
 
 function f(n){return Number(n||0).toLocaleString("vi-VN")+" đ";}
 function e(text=''){return String(text).replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -182,6 +194,22 @@ function generateAutoCode(){
   const mi = String(now.getMinutes()).padStart(2,'0');
   const s = String(now.getSeconds()).padStart(2,'0');
   return `${y}${m}${d}${h}${mi}${s}`;
+}
+
+function updateSaveButtonState(){
+  const btn = document.getElementById('saveOrderBtn');
+  const note = document.getElementById('editingNote');
+  if(!btn || !note) return;
+
+  if(editingOrderId){
+    btn.innerText='💾 Cập nhật đơn';
+    note.style.display='block';
+    note.innerHTML='Bạn đang sửa một <b>đơn đã lưu</b>. Sau khi chỉnh giá hoặc chi tiết, bấm <b>Cập nhật đơn</b> để ghi đè lại đơn cũ.';
+  }else{
+    btn.innerText='💾 Lưu đơn';
+    note.style.display='none';
+    note.innerHTML='';
+  }
 }
 
 function add(data={}){
@@ -262,9 +290,22 @@ function showPrice(input){
 }
 
 function enablePriceEdit(input){
-  input.onfocus=function(){if(!unlocked) return; this.value=this.dataset[currentTab]||"";};
-  input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset[currentTab]=this.value||0; calculate();};
-  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); saveDraft();};
+  input.onfocus=function(){
+    if(!unlocked) return;
+    this.value=this.dataset[currentTab]||"";
+  };
+  input.oninput=function(){
+    if(!unlocked) return;
+    this.value=this.value.replace(/\D/g,'');
+    this.dataset[currentTab]=this.value||0;
+    calculate();
+  };
+  input.onblur=function(){
+    if(!unlocked) return;
+    this.dataset[currentTab]=this.value||0;
+    this.value=f(this.dataset[currentTab]);
+    saveDraft();
+  };
 }
 
 function setPrice(select, doSave=true){
@@ -318,12 +359,17 @@ function calculate(){
   document.getElementById("total").innerText=f(total);
 }
 
-function del(btn){btn.closest(".card").remove(); saveDraft();}
+function del(btn){
+  btn.closest(".card").remove();
+  saveDraft();
+}
+
 function togglePrice(){
   unlocked=!unlocked;
   document.querySelectorAll(".price").forEach(p=>showPrice(p));
   document.getElementById("toggleBtn").innerText=unlocked?"🔒 Đóng giá":"🔐 Mở giá";
 }
+
 function resetAll(){
   if(confirm("Xóa hết dữ liệu hiện tại và các đơn đã lưu?")){
     localStorage.removeItem('data');
@@ -332,6 +378,7 @@ function resetAll(){
     location.reload();
   }
 }
+
 function saveDraft(){
   if(currentTab==='DEFAULT') return;
   let data=[];
@@ -382,16 +429,46 @@ function saveOrder(){
     document.getElementById('customerName').focus();
     return;
   }
+
   if(!orderCode){
     orderCode = generateAutoCode();
     document.getElementById('orderCode').value = orderCode;
   }
+
   if(items.length===0 || total<=0){
     alert('Chưa có dữ liệu hợp lệ để lưu đơn.');
     return;
   }
 
   const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+
+  if(editingOrderId){
+    const index = orders.findIndex(order => order.id === editingOrderId);
+    if(index === -1){
+      alert('Không tìm thấy đơn cần cập nhật.');
+      return;
+    }
+
+    orders[index] = {
+      ...orders[index],
+      orderCode,
+      customerName,
+      priceTable: currentTab,
+      total,
+      itemCount: items.length,
+      items,
+      updatedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('savedOrders', JSON.stringify(orders));
+    saveDraft();
+    renderSavedOrders();
+    editingOrderId = null;
+    updateSaveButtonState();
+    alert('Đã cập nhật đơn thành công.');
+    return;
+  }
+
   const order = {
     id: Date.now(),
     orderCode,
@@ -407,6 +484,7 @@ function saveOrder(){
   localStorage.setItem('savedOrders', JSON.stringify(orders));
   saveDraft();
   renderSavedOrders();
+  updateSaveButtonState();
   alert('Đã lưu đơn thành công.');
 }
 
@@ -414,6 +492,12 @@ function deleteSavedOrder(id){
   if(!confirm('Bạn có chắc muốn xóa đơn này không?')) return;
   const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]').filter(order => order.id !== id);
   localStorage.setItem('savedOrders', JSON.stringify(orders));
+
+  if(editingOrderId === id){
+    editingOrderId = null;
+    updateSaveButtonState();
+  }
+
   renderSavedOrders();
 }
 
@@ -421,6 +505,8 @@ function loadSavedOrder(id){
   const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
   const order = orders.find(item => item.id === id);
   if(!order) return;
+
+  editingOrderId = id;
 
   currentTab = order.priceTable || 'KT';
   document.getElementById('tabKT').className = currentTab==='KT'?'tab-btn tab-active':'tab-btn tab-inactive';
@@ -440,6 +526,7 @@ function loadSavedOrder(id){
       KT: item.type ? (item.type in PRICE_KT ? PRICE_KT[item.type] : item.price) : item.price,
       GT: item.type ? (item.type in PRICE_GT ? PRICE_GT[item.type] : item.price) : item.price
     });
+
     const lastCard = document.querySelector('#list .card:last-child');
     if(lastCard){
       const priceInput = lastCard.querySelector('.price');
@@ -450,7 +537,26 @@ function loadSavedOrder(id){
 
   calculate();
   saveDraft();
+  updateSaveButtonState();
   window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function editSavedOrder(id){
+  loadSavedOrder(id);
+
+  if(!unlocked){
+    unlocked = true;
+    document.querySelectorAll(".price").forEach(p=>showPrice(p));
+    document.getElementById("toggleBtn").innerText = "🔒 Đóng giá";
+  }
+
+  alert('Đơn đã được nạp. Bạn có thể sửa giá rồi bấm "Cập nhật đơn".');
+}
+
+function cancelEdit(){
+  editingOrderId = null;
+  updateSaveButtonState();
+  alert('Đã thoát chế độ sửa đơn. Nếu bấm lưu lúc này, hệ thống sẽ tạo đơn mới.');
 }
 
 function renderSavedOrders(){
@@ -482,7 +588,8 @@ function renderSavedOrders(){
           <div class="meta">
             Bảng giá: <b>${e(order.priceTable || '')}</b><br>
             Số dòng: <b>${Number(order.itemCount||0)}</b><br>
-            Thời gian lưu: <b>${e(formatDate(order.createdAt))}</b>
+            Thời gian lưu: <b>${e(formatDate(order.createdAt))}</b><br>
+            ${order.updatedAt ? `Cập nhật lần cuối: <b>${e(formatDate(order.updatedAt))}</b>` : ''}
           </div>
         </div>
         <div style="font-weight:bold;font-size:16px;white-space:nowrap;">${f(order.total)}</div>
@@ -493,6 +600,7 @@ function renderSavedOrders(){
         `).join('')}
       </div>
       <div class="actions">
+        <button class="tool mini-btn" onclick="editSavedOrder(${Number(order.id)})">Sửa giá</button>
         <button class="tool mini-btn" onclick="loadSavedOrder(${Number(order.id)})">Nạp lại đơn</button>
         <button class="del mini-btn" onclick="deleteSavedOrder(${Number(order.id)})">Xóa đơn</button>
       </div>
@@ -505,6 +613,7 @@ function switchTab(tab){
   document.getElementById("tabKT").className = tab==='KT'?'tab-btn tab-active':'tab-btn tab-inactive';
   document.getElementById("tabGT").className = tab==='GT'?'tab-btn tab-active':'tab-btn tab-inactive';
   document.getElementById("tabDEFAULT").className = tab==='DEFAULT'?'tab-btn tab-active':'tab-btn tab-inactive';
+
   if(tab==='DEFAULT'){
     renderDefaultList();
     document.getElementById("total").innerText='';
@@ -533,6 +642,7 @@ window.onload=()=>{
   });
   document.getElementById('orderSearch').addEventListener('input', renderSavedOrders);
   renderSavedOrders();
+  updateSaveButtonState();
 };
 </script>
 

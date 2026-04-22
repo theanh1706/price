@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bảng giá STP - Compact</title>
+<title>Bảng giá STP - Nâng cấp lưu đơn</title>
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1e1e2f">
@@ -14,20 +14,39 @@
 body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff;}
 .container{max-width:600px;margin:auto;padding:10px;}
 h2{text-align:center;margin-bottom:10px;}
-button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointer}
+button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointer;padding:8px 12px}
 .add{background:#1cc88a;color:#fff;}
 .tool{background:#4e73df;color:#fff;}
 .del{background:#e74a3b;color:#fff;}
+.save-order{background:#f6c23e;color:#000;font-weight:bold;}
 .total{text-align:right;font-size:18px;margin-top:8px;font-weight:bold}
 .tab-btn{padding:6px 12px;margin-right:5px;font-weight:bold;}
 .tab-active{background:#ffb400;color:#000;}
 .tab-inactive{background:#6c757d;color:#fff;}
 .card{display:flex;align-items:center;gap:4px;background:#2a2a40;padding:4px;border-radius:6px;margin-bottom:4px;font-size:13px;min-height:40px;}
-.card select, .card input.price{flex:1 1 35%;min-width:50px;padding:3px;font-size:13px;}
-.card input[type="number"]{flex:1 1 15%;min-width:30px;padding:3px;font-size:13px;}
+.card select, .card input.price{flex:1 1 35%;min-width:50px;padding:6px 8px;font-size:13px;border-radius:6px;border:none;}
+.card input[type="number"]{flex:1 1 15%;min-width:30px;padding:6px 8px;font-size:13px;border-radius:6px;border:none;}
 .card .rowTotal{flex:1 1 25%;text-align:right;font-weight:bold;}
-.card button.del{flex:1 1 10%;min-width:30px;padding:2px 4px;font-size:12px;}
+.card button.del{flex:1 1 10%;min-width:30px;padding:6px 8px;font-size:12px;}
 .default-item{background:#444466;padding:8px;margin:4px 0;border-radius:6px;font-size:14px;display:flex;justify-content:space-between;}
+.customer-box,.history-box{background:#2a2a40;padding:10px;border-radius:10px;margin:10px 0;}
+.customer-box h3,.history-box h3{margin:0 0 10px 0;font-size:16px;}
+.customer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.customer-grid input{width:100%;box-sizing:border-box;padding:10px;border:none;border-radius:8px;font-size:14px;}
+.action-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.order-card{background:#3a3a55;padding:10px;border-radius:10px;margin-bottom:8px;}
+.order-card .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.order-card .title{font-weight:bold;font-size:15px;}
+.order-card .meta{font-size:13px;color:#ddd;margin-top:4px;line-height:1.5;}
+.order-card .items{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;line-height:1.55;}
+.order-card .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.order-card .mini-btn{padding:6px 10px;font-size:13px;border-radius:6px;}
+.empty-note{opacity:.8;font-size:13px;}
+.summary-line{margin-top:6px;font-size:13px;color:#eaeaea;}
+.search-input{width:100%;box-sizing:border-box;padding:10px;border:none;border-radius:8px;font-size:14px;margin:8px 0 10px 0;}
+@media (max-width: 768px){
+  .customer-grid{grid-template-columns:1fr;}
+}
 @media (min-width: 769px){
   .card{display:flex;flex-wrap:nowrap;gap:10px;padding:12px;font-size:16px;}
   .card select{width:180px;}
@@ -48,13 +67,32 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   <button class="tab-btn tab-inactive" id="tabGT" onclick="switchTab('GT')">GT</button>
   <button class="tab-btn tab-inactive" id="tabDEFAULT" onclick="switchTab('DEFAULT')">DEFAULT</button>
 </div>
+
+<div class="customer-box">
+  <h3>Thông tin khách hàng</h3>
+  <div class="customer-grid">
+    <input id="customerName" type="text" placeholder="Nhập tên khách hàng">
+    <input id="orderCode" type="text" placeholder="Nhập mã đơn hàng">
+  </div>
+  <div class="summary-line">Sau khi tính tiền xong, bấm <b>Lưu đơn</b> để lưu lại mã đơn, tên khách, tổng tiền và chi tiết đơn hàng.</div>
+</div>
+
 <div id="list"></div>
 
-<button class="add" class="add" onclick="add()">➕ Thêm</button>
-<button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
-<button class="tool" onclick="resetAll()">🧹 Reset</button>
+<div class="action-row">
+  <button class="add" onclick="add()">➕ Thêm</button>
+  <button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
+  <button class="save-order" onclick="saveOrder()">💾 Lưu đơn</button>
+  <button class="tool" onclick="resetAll()">🧹 Reset</button>
+</div>
 
 <div class="total" id="total">0 đ</div>
+
+<div class="history-box">
+  <h3>Đơn đã lưu</h3>
+  <input id="orderSearch" class="search-input" type="text" placeholder="Tìm theo tên khách hoặc mã đơn hàng">
+  <div id="savedOrders"></div>
+</div>
 </div>
 
 <script>
@@ -68,9 +106,9 @@ const PRICE_KT={
   decal_pipi_can_man:150000,decal_be:220000,
   decal_trang_trong_pipi_UV:200000,decal_trang_trong_UV_be:270000,
   decal_den_UV:200000,cat_chu_decal:150000,
-  DC_form_3mm:390000,DC_form_5mm:470000,
-  DC_Alu:520000,Canvas_UV:250000,Backlist:250000,
-  form3mm:240000,form5mm:320000,form8mm:380000,
+  DC_form_3mm:450000,DC_form_5mm:500000,
+  DC_Alu:700000,Canvas_UV:250000,Backlist:250000,
+  form3mm:300000,form5mm:400000,form8mm:450000,
 };
 
 // Giá GT
@@ -86,6 +124,30 @@ const PRICE_GT={
   form3mm:240000,form5mm:320000,form8mm:380000,
 };
 
+const PRODUCT_NAMES={
+  bat_trang:'Bạt trắng',
+  bat_xam:'Bạt xám',
+  bat_thuong_in_uv:'Bạt thường in UV',
+  bat_xam_thuong_in_uv:'Bạt xám thường in UV',
+  bat_KG_in_thuong:'Bạt KG in thường',
+  bat_UV_ko_xuyen_den:'Bạt KG UV không xuyên đèn',
+  bat_UV_xuyen_den:'Bạt KG UV xuyên đèn',
+  decal_pipi_can_man:'Decal/pipi cán màng',
+  decal_be:'Decal bế',
+  decal_trang_trong_pipi_UV:'Decal trắng/trong/pipi UV',
+  decal_trang_trong_UV_be:'Decal trắng/trong UV bế',
+  decal_den_UV:'Decal đen UV',
+  cat_chu_decal:'Cắt Chữ Decal',
+  DC_form_3mm:'Form 3mm + Decal',
+  DC_form_5mm:'Form 5mm + Decal',
+  DC_Alu:'Alu + Decal',
+  Canvas_UV:'Canvas UV',
+  Backlist:'Backlist Film',
+  form3mm:'Form 3mm',
+  form5mm:'Form 5mm',
+  form8mm:'Form 8mm'
+};
+
 // Giá DEFAULT hiển thị cố định
 const DEFAULT_LIST=[
   {name:"A4 in màu ép plastic", price:30000},
@@ -98,9 +160,32 @@ let unlocked=false;
 let currentTab='KT';
 
 function f(n){return Number(n||0).toLocaleString("vi-VN")+" đ";}
+function e(text=''){return String(text).replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function formatDate(iso){
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('vi-VN');
+}
+function normalizeText(text=''){
+  return String(text)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .trim();
+}
+function generateAutoCode(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,'0');
+  const d = String(now.getDate()).padStart(2,'0');
+  const h = String(now.getHours()).padStart(2,'0');
+  const mi = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  return `DH-${y}${m}${d}-${h}${mi}${s}`;
+}
 
 function add(data={}){
-  if(currentTab==='DEFAULT') return; // Không thêm khi DEFAULT
+  if(currentTab==='DEFAULT') return;
   let div=document.createElement("div");
   div.className="card";
 
@@ -139,9 +224,9 @@ function add(data={}){
     </optgroup>
   </select>
 
-  <input type="number" placeholder="Rộng" value="${data.w||''}" oninput="save()">
-  <input type="number" placeholder="Cao" value="${data.h||''}" oninput="save()">
-  <input type="number" value="${data.qty||1}" oninput="save()">
+  <input type="number" placeholder="Rộng" value="${data.w||''}" oninput="saveDraft()">
+  <input type="number" placeholder="Cao" value="${data.h||''}" oninput="saveDraft()">
+  <input type="number" value="${data.qty||1}" oninput="saveDraft()">
   <input class="price">
   <div class="rowTotal">0 đ</div>
   <button class="del" onclick="del(this)">X</button>
@@ -155,8 +240,8 @@ function add(data={}){
   enablePriceEdit(priceInput);
 
   let selectVal = div.querySelector("select").value;
-  priceInput.dataset.KT = PRICE_KT[selectVal] || 0;
-  priceInput.dataset.GT = PRICE_GT[selectVal] || 0;
+  priceInput.dataset.KT = data.KT || PRICE_KT[selectVal] || 0;
+  priceInput.dataset.GT = data.GT || PRICE_GT[selectVal] || 0;
 
   showPrice(priceInput);
   calculate();
@@ -164,7 +249,6 @@ function add(data={}){
 
 function showPrice(input){
   if(currentTab==='DEFAULT'){
-    // Không dùng ô input, hiển thị DEFAULT LIST
     renderDefaultList();
   } else {
     if(unlocked){
@@ -180,7 +264,7 @@ function showPrice(input){
 function enablePriceEdit(input){
   input.onfocus=function(){if(!unlocked) return; this.value=this.dataset[currentTab]||"";};
   input.oninput=function(){if(!unlocked) return; this.value=this.value.replace(/\D/g,''); this.dataset[currentTab]=this.value||0; calculate();};
-  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); save();};
+  input.onblur=function(){if(!unlocked) return; this.dataset[currentTab]=this.value||0; this.value=f(this.dataset[currentTab]); saveDraft();};
 }
 
 function setPrice(select, doSave=true){
@@ -190,11 +274,35 @@ function setPrice(select, doSave=true){
   input.dataset.KT = PRICE_KT[val] || 0;
   input.dataset.GT = PRICE_GT[val] || 0;
   showPrice(input);
-  if(doSave) save();
+  if(doSave) saveDraft();
+}
+
+function getCurrentItems(){
+  let items=[];
+  document.querySelectorAll('.card').forEach(card=>{
+    let inputs=card.querySelectorAll('input');
+    let type=card.querySelector('select').value;
+    let w=Number(inputs[0].value)||0;
+    let h=Number(inputs[1].value)||0;
+    let qty=Number(inputs[2].value)||1;
+    let price=Number(card.querySelector('.price').dataset[currentTab])||0;
+    let m2=(w*h)/1000000;
+    let total=m2*price*qty;
+    items.push({
+      type,
+      name: PRODUCT_NAMES[type] || type,
+      w,h,qty,price,total
+    });
+  });
+  return items;
+}
+
+function getCurrentTotal(){
+  return getCurrentItems().reduce((sum,item)=>sum + (Number(item.total)||0),0);
 }
 
 function calculate(){
-  if(currentTab==='DEFAULT') return; // Không tính tổng khi DEFAULT
+  if(currentTab==='DEFAULT') return;
   let total=0;
   document.querySelectorAll(".card").forEach(card=>{
     let inputs=card.querySelectorAll("input");
@@ -210,10 +318,21 @@ function calculate(){
   document.getElementById("total").innerText=f(total);
 }
 
-function del(btn){btn.closest(".card").remove(); save();}
-function togglePrice(){unlocked=!unlocked; document.querySelectorAll(".price").forEach(p=>showPrice(p)); document.getElementById("toggleBtn").innerText=unlocked?"🔒 Đóng giá":"🔐 Mở giá";}
-function resetAll(){if(confirm("Xóa hết dữ liệu?")){localStorage.clear(); location.reload();}}
-function save(){
+function del(btn){btn.closest(".card").remove(); saveDraft();}
+function togglePrice(){
+  unlocked=!unlocked;
+  document.querySelectorAll(".price").forEach(p=>showPrice(p));
+  document.getElementById("toggleBtn").innerText=unlocked?"🔒 Đóng giá":"🔐 Mở giá";
+}
+function resetAll(){
+  if(confirm("Xóa hết dữ liệu hiện tại và các đơn đã lưu?")){
+    localStorage.removeItem('data');
+    localStorage.removeItem('savedOrders');
+    localStorage.removeItem('customerInfo');
+    location.reload();
+  }
+}
+function saveDraft(){
   if(currentTab==='DEFAULT') return;
   let data=[];
   document.querySelectorAll(".card").forEach(card=>{
@@ -229,6 +348,10 @@ function save(){
     });
   });
   localStorage.setItem("data",JSON.stringify(data));
+  localStorage.setItem('customerInfo', JSON.stringify({
+    customerName: document.getElementById('customerName').value,
+    orderCode: document.getElementById('orderCode').value
+  }));
   calculate();
 }
 
@@ -241,6 +364,140 @@ function renderDefaultList(){
     div.innerHTML=`<span>${item.name}</span><span>${f(item.price)}</span>`;
     listDiv.appendChild(div);
   });
+}
+
+function saveOrder(){
+  if(currentTab==='DEFAULT'){
+    alert('Tab DEFAULT chỉ để xem giá cố định, chưa hỗ trợ lưu đơn.');
+    return;
+  }
+
+  const customerName = document.getElementById('customerName').value.trim();
+  let orderCode = document.getElementById('orderCode').value.trim();
+  const items = getCurrentItems().filter(item => item.w > 0 && item.h > 0 && item.qty > 0);
+  const total = items.reduce((sum,item)=>sum + item.total, 0);
+
+  if(!customerName){
+    alert('Vui lòng nhập tên khách hàng.');
+    document.getElementById('customerName').focus();
+    return;
+  }
+  if(!orderCode){
+    orderCode = generateAutoCode();
+    document.getElementById('orderCode').value = orderCode;
+  }
+  if(items.length===0 || total<=0){
+    alert('Chưa có dữ liệu hợp lệ để lưu đơn.');
+    return;
+  }
+
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+  const order = {
+    id: Date.now(),
+    orderCode,
+    customerName,
+    priceTable: currentTab,
+    total,
+    createdAt: new Date().toISOString(),
+    itemCount: items.length,
+    items
+  };
+
+  orders.unshift(order);
+  localStorage.setItem('savedOrders', JSON.stringify(orders));
+  saveDraft();
+  renderSavedOrders();
+  alert('Đã lưu đơn thành công.');
+}
+
+function deleteSavedOrder(id){
+  if(!confirm('Bạn có chắc muốn xóa đơn này không?')) return;
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]').filter(order => order.id !== id);
+  localStorage.setItem('savedOrders', JSON.stringify(orders));
+  renderSavedOrders();
+}
+
+function loadSavedOrder(id){
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+  const order = orders.find(item => item.id === id);
+  if(!order) return;
+
+  currentTab = order.priceTable || 'KT';
+  document.getElementById('tabKT').className = currentTab==='KT'?'tab-btn tab-active':'tab-btn tab-inactive';
+  document.getElementById('tabGT').className = currentTab==='GT'?'tab-btn tab-active':'tab-btn tab-inactive';
+  document.getElementById('tabDEFAULT').className = 'tab-btn tab-inactive';
+
+  document.getElementById('customerName').value = order.customerName || '';
+  document.getElementById('orderCode').value = order.orderCode || '';
+  document.getElementById('list').innerHTML='';
+
+  order.items.forEach(item=>{
+    add({
+      type:item.type,
+      w:item.w,
+      h:item.h,
+      qty:item.qty,
+      KT: item.type ? (item.type in PRICE_KT ? PRICE_KT[item.type] : item.price) : item.price,
+      GT: item.type ? (item.type in PRICE_GT ? PRICE_GT[item.type] : item.price) : item.price
+    });
+    const lastCard = document.querySelector('#list .card:last-child');
+    if(lastCard){
+      const priceInput = lastCard.querySelector('.price');
+      priceInput.dataset[currentTab] = item.price || 0;
+      showPrice(priceInput);
+    }
+  });
+
+  calculate();
+  saveDraft();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function renderSavedOrders(){
+  const wrap = document.getElementById('savedOrders');
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+  const keyword = normalizeText(document.getElementById('orderSearch')?.value || '');
+
+  if(!orders.length){
+    wrap.innerHTML = '<div class="empty-note">Chưa có đơn nào được lưu.</div>';
+    return;
+  }
+
+  const filteredOrders = !keyword ? orders : orders.filter(order => {
+    const name = normalizeText(order.customerName || '');
+    const code = normalizeText(order.orderCode || '');
+    return name.includes(keyword) || code.includes(keyword);
+  });
+
+  if(!filteredOrders.length){
+    wrap.innerHTML = '<div class="empty-note">Không tìm thấy đơn phù hợp.</div>';
+    return;
+  }
+
+  wrap.innerHTML = filteredOrders.map(order => `
+    <div class="order-card">
+      <div class="top">
+        <div>
+          <div class="title">${e(order.orderCode)} - ${e(order.customerName)}</div>
+          <div class="meta">
+            Bảng giá: <b>${e(order.priceTable || '')}</b><br>
+            Số dòng: <b>${Number(order.itemCount||0)}</b><br>
+            Thời gian lưu: <b>${e(formatDate(order.createdAt))}</b>
+          </div>
+        </div>
+        <div style="font-weight:bold;font-size:16px;white-space:nowrap;">${f(order.total)}</div>
+      </div>
+      <div class="items">
+        ${order.items.map((item,idx)=>`
+          <div>${idx+1}. ${e(item.name)} | ${Number(item.w)||0} x ${Number(item.h)||0} | SL: ${Number(item.qty)||0} | Đơn giá: ${f(item.price)} | Thành tiền: ${f(item.total)}</div>
+        `).join('')}
+      </div>
+      <div class="actions">
+        <button class="tool mini-btn" onclick="loadSavedOrder(${Number(order.id)})">Nạp lại đơn</button>
+        <button class="del mini-btn" onclick="deleteSavedOrder(${Number(order.id)})">Xóa đơn</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 function switchTab(tab){
@@ -260,10 +517,19 @@ function switchTab(tab){
 }
 
 window.onload=()=>{
+  const customerInfo = JSON.parse(localStorage.getItem('customerInfo') || '{}');
+  document.getElementById('customerName').value = customerInfo.customerName || '';
+  document.getElementById('orderCode').value = customerInfo.orderCode || '';
+
   if(currentTab!=='DEFAULT'){
     let data=JSON.parse(localStorage.getItem("data")||"[]");
     if(data.length){data.forEach(d=>add(d));}else{add();}
   }
+
+  document.getElementById('customerName').addEventListener('input', saveDraft);
+  document.getElementById('orderCode').addEventListener('input', saveDraft);
+  document.getElementById('orderSearch').addEventListener('input', renderSavedOrders);
+  renderSavedOrders();
 };
 </script>
 

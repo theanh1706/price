@@ -72,7 +72,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   <h3>Thông tin khách hàng</h3>
   <div class="customer-grid">
     <input id="customerName" type="text" placeholder="Nhập tên khách hàng">
-    <input id="orderCode" type="text" placeholder="Nhập mã đơn hàng">
+    <input id="orderCode" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Nhập mã đơn hàng (chỉ số)">
   </div>
   <div class="summary-line">Sau khi tính tiền xong, bấm <b>Lưu đơn</b> để lưu lại mã đơn, tên khách, tổng tiền và chi tiết đơn hàng.</div>
 </div>
@@ -181,7 +181,7 @@ function generateAutoCode(){
   const h = String(now.getHours()).padStart(2,'0');
   const mi = String(now.getMinutes()).padStart(2,'0');
   const s = String(now.getSeconds()).padStart(2,'0');
-  return `DH-${y}${m}${d}-${h}${mi}${s}`;
+  return `${y}${m}${d}${h}${mi}${s}`;
 }
 
 function add(data={}){
@@ -527,7 +527,10 @@ window.onload=()=>{
   }
 
   document.getElementById('customerName').addEventListener('input', saveDraft);
-  document.getElementById('orderCode').addEventListener('input', saveDraft);
+  document.getElementById('orderCode').addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g,'');
+    saveDraft();
+  });
   document.getElementById('orderSearch').addEventListener('input', renderSavedOrders);
   renderSavedOrders();
 };

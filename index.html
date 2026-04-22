@@ -53,6 +53,19 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   font-size:13px;
   display:none;
 }
+.final-total-box input{
+  width:100%;
+  box-sizing:border-box;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+}
+.final-total-help{
+  margin-top:6px;
+  font-size:13px;
+  color:#eaeaea;
+}
 @media (max-width: 768px){
   .customer-grid{grid-template-columns:1fr;}
 }
@@ -98,6 +111,14 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 </div>
 
 <div class="total" id="total">0 đ</div>
+
+<div class="customer-box final-total-box" id="finalTotalWrap">
+  <h3>Tổng bill chốt</h3>
+  <input id="finalTotal" type="tel" inputmode="numeric" placeholder="Để trống nếu dùng tổng tự tính">
+  <div class="final-total-help">
+    Nếu bạn có tự làm tròn hoặc tự thêm tiền với khách, nhập <b>tổng bill cuối cùng</b> ở đây.
+  </div>
+</div>
 
 <div class="history-box">
   <h3>Đơn đã lưu</h3>
@@ -185,6 +206,9 @@ function normalizeText(text=''){
     .toLowerCase()
     .trim();
 }
+function formatNumberInput(value=''){
+  return String(value).replace(/\D/g,'');
+}
 function generateAutoCode(){
   const now = new Date();
   const y = now.getFullYear();
@@ -196,6 +220,17 @@ function generateAutoCode(){
   return `${y}${m}${d}${h}${mi}${s}`;
 }
 
+function getCalculatedTotal(){
+  return getCurrentItems()
+    .filter(item => item.w > 0 && item.h > 0 && item.qty > 0)
+    .reduce((sum,item)=>sum + item.total, 0);
+}
+
+function getFinalBillValue(){
+  const customTotal = Number(document.getElementById('finalTotal')?.value || 0);
+  return customTotal > 0 ? customTotal : getCalculatedTotal();
+}
+
 function updateSaveButtonState(){
   const btn = document.getElementById('saveOrderBtn');
   const note = document.getElementById('editingNote');
@@ -204,7 +239,7 @@ function updateSaveButtonState(){
   if(editingOrderId){
     btn.innerText='💾 Cập nhật đơn';
     note.style.display='block';
-    note.innerHTML='Bạn đang sửa một <b>đơn đã lưu</b>. Sau khi chỉnh giá hoặc chi tiết, bấm <b>Cập nhật đơn</b> để ghi đè lại đơn cũ.';
+    note.innerHTML='Bạn đang sửa một <b>đơn đã lưu</b>. Bạn có thể đổi <b>Tổng bill chốt</b> rồi bấm <b>Cập nhật đơn</b>.';
   }else{
     btn.innerText='💾 Lưu đơn';
     note.style.display='none';
@@ -338,10 +373,6 @@ function getCurrentItems(){
   return items;
 }
 
-function getCurrentTotal(){
-  return getCurrentItems().reduce((sum,item)=>sum + (Number(item.total)||0),0);
-}
-
 function calculate(){
   if(currentTab==='DEFAULT') return;
   let total=0;
@@ -356,7 +387,7 @@ function calculate(){
     card.querySelector(".rowTotal").innerText=f(t);
     total+=t;
   });
-  document.getElementById("total").innerText=f(total);
+  document.getElementById("total").innerText='Tổng tự tính: ' + f(total);
 }
 
 function del(btn){
@@ -397,7 +428,8 @@ function saveDraft(){
   localStorage.setItem("data",JSON.stringify(data));
   localStorage.setItem('customerInfo', JSON.stringify({
     customerName: document.getElementById('customerName').value,
-    orderCode: document.getElementById('orderCode').value
+    orderCode: document.getElementById('orderCode').value,
+    finalTotal: document.getElementById('finalTotal').value
   }));
   calculate();
 }
@@ -422,7 +454,9 @@ function saveOrder(){
   const customerName = document.getElementById('customerName').value.trim();
   let orderCode = document.getElementById('orderCode').value.trim();
   const items = getCurrentItems().filter(item => item.w > 0 && item.h > 0 && item.qty > 0);
-  const total = items.reduce((sum,item)=>sum + item.total, 0);
+  const calculatedTotal = items.reduce((sum,item)=>sum + item.total, 0);
+  const customTotal = Number(document.getElementById('finalTotal').value || 0);
+  const total = customTotal > 0 ? customTotal : calculatedTotal;
 
   if(!customerName){
     alert('Vui lòng nhập tên khách hàng.');
@@ -455,6 +489,8 @@ function saveOrder(){
       customerName,
       priceTable: currentTab,
       total,
+      customTotal: customTotal > 0 ? customTotal : '',
+      calculatedTotal,
       itemCount: items.length,
       items,
       updatedAt: new Date().toISOString()
@@ -475,6 +511,8 @@ function saveOrder(){
     customerName,
     priceTable: currentTab,
     total,
+    customTotal: customTotal > 0 ? customTotal : '',
+    calculatedTotal,
     createdAt: new Date().toISOString(),
     itemCount: items.length,
     items
@@ -515,6 +553,7 @@ function loadSavedOrder(id){
 
   document.getElementById('customerName').value = order.customerName || '';
   document.getElementById('orderCode').value = order.orderCode || '';
+  document.getElementById('finalTotal').value = order.customTotal || order.total || '';
   document.getElementById('list').innerHTML='';
 
   order.items.forEach(item=>{
@@ -526,7 +565,6 @@ function loadSavedOrder(id){
       KT: item.type ? (item.type in PRICE_KT ? PRICE_KT[item.type] : item.price) : item.price,
       GT: item.type ? (item.type in PRICE_GT ? PRICE_GT[item.type] : item.price) : item.price
     });
-
     const lastCard = document.querySelector('#list .card:last-child');
     if(lastCard){
       const priceInput = lastCard.querySelector('.price');
@@ -543,14 +581,7 @@ function loadSavedOrder(id){
 
 function editSavedOrder(id){
   loadSavedOrder(id);
-
-  if(!unlocked){
-    unlocked = true;
-    document.querySelectorAll(".price").forEach(p=>showPrice(p));
-    document.getElementById("toggleBtn").innerText = "🔒 Đóng giá";
-  }
-
-  alert('Đơn đã được nạp. Bạn có thể sửa giá rồi bấm "Cập nhật đơn".');
+  alert('Đơn đã được nạp. Bạn sửa ở ô "Tổng bill chốt" rồi bấm "Cập nhật đơn".');
 }
 
 function cancelEdit(){
@@ -588,6 +619,8 @@ function renderSavedOrders(){
           <div class="meta">
             Bảng giá: <b>${e(order.priceTable || '')}</b><br>
             Số dòng: <b>${Number(order.itemCount||0)}</b><br>
+            Tổng tự tính: <b>${f(order.calculatedTotal || order.total || 0)}</b><br>
+            Tổng chốt: <b>${f(order.total || 0)}</b><br>
             Thời gian lưu: <b>${e(formatDate(order.createdAt))}</b><br>
             ${order.updatedAt ? `Cập nhật lần cuối: <b>${e(formatDate(order.updatedAt))}</b>` : ''}
           </div>
@@ -600,7 +633,7 @@ function renderSavedOrders(){
         `).join('')}
       </div>
       <div class="actions">
-        <button class="tool mini-btn" onclick="editSavedOrder(${Number(order.id)})">Sửa giá</button>
+        <button class="tool mini-btn" onclick="editSavedOrder(${Number(order.id)})">Sửa tổng bill</button>
         <button class="tool mini-btn" onclick="loadSavedOrder(${Number(order.id)})">Nạp lại đơn</button>
         <button class="del mini-btn" onclick="deleteSavedOrder(${Number(order.id)})">Xóa đơn</button>
       </div>
@@ -617,7 +650,9 @@ function switchTab(tab){
   if(tab==='DEFAULT'){
     renderDefaultList();
     document.getElementById("total").innerText='';
+    document.getElementById("finalTotalWrap").style.display='none';
   } else {
+    document.getElementById("finalTotalWrap").style.display='block';
     let data=JSON.parse(localStorage.getItem("data")||"[]");
     document.getElementById("list").innerHTML='';
     if(data.length){data.forEach(d=>add(d));}else{add();}
@@ -629,6 +664,7 @@ window.onload=()=>{
   const customerInfo = JSON.parse(localStorage.getItem('customerInfo') || '{}');
   document.getElementById('customerName').value = customerInfo.customerName || '';
   document.getElementById('orderCode').value = customerInfo.orderCode || '';
+  document.getElementById('finalTotal').value = customerInfo.finalTotal || '';
 
   if(currentTab!=='DEFAULT'){
     let data=JSON.parse(localStorage.getItem("data")||"[]");
@@ -640,9 +676,15 @@ window.onload=()=>{
     this.value = this.value.replace(/\D/g,'');
     saveDraft();
   });
+  document.getElementById('finalTotal').addEventListener('input', function(){
+    this.value = formatNumberInput(this.value);
+    saveDraft();
+  });
   document.getElementById('orderSearch').addEventListener('input', renderSavedOrders);
+
   renderSavedOrders();
   updateSaveButtonState();
+  calculate();
 };
 </script>
 

@@ -160,7 +160,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 
 <div class="today-box">
   <h3>Bill ngày hôm nay</h3>
-  <div class="summary-line">Nhấn nút <b>Bill hôm nay</b> để liệt kê toàn bộ mã đơn hàng và tên khách của hôm nay.</div>
+  <div class="summary-line">Nhấn nút <b>Bill hôm nay</b> để liệt kê toàn bộ mã đơn hàng, tên khách và số tiền của hôm nay.</div>
   <div id="todayOrders" class="empty-note">Chưa hiển thị danh sách bill hôm nay.</div>
 </div>
 
@@ -752,7 +752,7 @@ function showTodayOrders(){
   wrap.innerHTML = `
     <div class="today-list">
       ${todayOrders.map(order => `
-        <div class="today-line">${e(order.orderCode)} - ${e(order.customerName)} (${paymentStatusText(order.paymentStatus)})</div>
+        <div class="today-line">${e(order.orderCode)} - ${e(order.customerName)} - ${f(order.total || 0)} (${paymentStatusText(order.paymentStatus)})</div>
       `).join('')}
       <div class="today-summary">
         Tổng số bill: <b>${todayOrders.length}</b><br>

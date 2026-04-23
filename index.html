@@ -12,7 +12,7 @@
 
 <style>
 body{font-family:Segoe UI;margin:0;background:#1e1e2f;color:#fff;}
-.container{max-width:600px;margin:auto;padding:10px;}
+.container{max-width:700px;margin:auto;padding:10px;}
 h2{text-align:center;margin-bottom:10px;}
 button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointer;padding:8px 12px}
 .add{background:#1cc88a;color:#fff;}
@@ -29,11 +29,11 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
 .card .rowTotal{flex:1 1 25%;text-align:right;font-weight:bold;}
 .card button.del{flex:1 1 10%;min-width:30px;padding:6px 8px;font-size:12px;}
 .default-item{background:#444466;padding:8px;margin:4px 0;border-radius:6px;font-size:14px;display:flex;justify-content:space-between;}
-.customer-box,.history-box{background:#2a2a40;padding:10px;border-radius:10px;margin:10px 0;}
-.customer-box h3,.history-box h3{margin:0 0 10px 0;font-size:16px;}
+.customer-box,.history-box,.today-box{background:#2a2a40;padding:10px;border-radius:10px;margin:10px 0;}
+.customer-box h3,.history-box h3,.today-box h3{margin:0 0 10px 0;font-size:16px;}
 .customer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.customer-grid input{width:100%;box-sizing:border-box;padding:10px;border:none;border-radius:8px;font-size:14px;}
-.action-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.customer-grid input,.customer-grid select{width:100%;box-sizing:border-box;padding:10px;border:none;border-radius:8px;font-size:14px;}
+.action-row,.quick-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .order-card{background:#3a3a55;padding:10px;border-radius:10px;margin-bottom:8px;}
 .order-card .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 .order-card .title{font-weight:bold;font-size:15px;}
@@ -66,6 +66,27 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   font-size:13px;
   color:#eaeaea;
 }
+.status-badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+  margin-top:6px;
+}
+.status-paid{background:#1cc88a;color:#fff;}
+.status-unpaid{background:#e74a3b;color:#fff;}
+.today-list{
+  background:#3a3a55;
+  border-radius:10px;
+  padding:10px;
+  margin-top:8px;
+  font-size:14px;
+  line-height:1.65;
+}
+.today-line{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.08);}
+.today-line:last-child{border-bottom:none;}
+.today-summary{margin-top:8px;color:#eaeaea;font-size:13px;}
 @media (max-width: 768px){
   .customer-grid{grid-template-columns:1fr;}
 }
@@ -96,7 +117,23 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
     <input id="customerName" type="text" placeholder="Nhập tên khách hàng">
     <input id="orderCode" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="Nhập mã đơn hàng (chỉ số)">
   </div>
-  <div class="summary-line">Sau khi tính tiền xong, bấm <b>Lưu đơn</b> để lưu lại mã đơn, tên khách, tổng tiền và chi tiết đơn hàng.</div>
+
+  <div class="quick-row">
+    <button class="tool" onclick="clearCustomerName()">🧹 Xóa tên khách</button>
+    <button class="tool" onclick="clearOrderCode()">🧹 Xóa mã đơn</button>
+    <button class="del" onclick="clearCustomerQuick()">❌ Xóa nhanh cả 2</button>
+  </div>
+
+  <div class="summary-line">Sau khi tính tiền xong, bấm <b>Lưu đơn</b> để lưu lại mã đơn, tên khách, tổng tiền, trạng thái thu tiền và chi tiết đơn hàng.</div>
+
+  <div class="customer-grid" style="margin-top:10px;">
+    <select id="paymentStatus">
+      <option value="unpaid">Chưa thu</option>
+      <option value="paid">Đã thu</option>
+    </select>
+    <input id="todayPreviewText" type="text" readonly placeholder="Bấm Bill hôm nay để xem danh sách">
+  </div>
+
   <div id="editingNote" class="editing-note"></div>
 </div>
 
@@ -106,6 +143,7 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   <button class="add" onclick="add()">➕ Thêm</button>
   <button class="tool" id="toggleBtn" onclick="togglePrice()">🔐 Mở giá</button>
   <button class="save-order" id="saveOrderBtn" onclick="saveOrder()">💾 Lưu đơn</button>
+  <button class="tool" onclick="showTodayOrders()">📅 Bill hôm nay</button>
   <button class="tool" onclick="cancelEdit()">↩ Hủy sửa</button>
   <button class="tool" onclick="resetAll()">🧹 Reset</button>
 </div>
@@ -118,6 +156,12 @@ button{border:none;border-radius:6px;margin-top:5px;font-size:14px;cursor:pointe
   <div class="final-total-help">
     Nếu bạn có tự làm tròn hoặc tự thêm tiền với khách, nhập <b>tổng bill cuối cùng</b> ở đây.
   </div>
+</div>
+
+<div class="today-box">
+  <h3>Bill ngày hôm nay</h3>
+  <div class="summary-line">Nhấn nút <b>Bill hôm nay</b> để liệt kê toàn bộ mã đơn hàng và tên khách của hôm nay.</div>
+  <div id="todayOrders" class="empty-note">Chưa hiển thị danh sách bill hôm nay.</div>
 </div>
 
 <div class="history-box">
@@ -219,6 +263,18 @@ function generateAutoCode(){
   const s = String(now.getSeconds()).padStart(2,'0');
   return `${y}${m}${d}${h}${mi}${s}`;
 }
+function isToday(iso){
+  const d = new Date(iso);
+  if(Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return d.getDate()===now.getDate() && d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+}
+function paymentStatusText(status){
+  return status === 'paid' ? 'Đã thu' : 'Chưa thu';
+}
+function paymentStatusClass(status){
+  return status === 'paid' ? 'status-badge status-paid' : 'status-badge status-unpaid';
+}
 
 function getCalculatedTotal(){
   return getCurrentItems()
@@ -239,12 +295,28 @@ function updateSaveButtonState(){
   if(editingOrderId){
     btn.innerText='💾 Cập nhật đơn';
     note.style.display='block';
-    note.innerHTML='Bạn đang sửa một <b>đơn đã lưu</b>. Bạn có thể đổi <b>Tổng bill chốt</b> rồi bấm <b>Cập nhật đơn</b>.';
+    note.innerHTML='Bạn đang sửa một <b>đơn đã lưu</b>. Bạn có thể đổi <b>Tổng bill chốt</b>, <b>trạng thái thu tiền</b> rồi bấm <b>Cập nhật đơn</b>.';
   }else{
     btn.innerText='💾 Lưu đơn';
     note.style.display='none';
     note.innerHTML='';
   }
+}
+
+function clearCustomerName(){
+  document.getElementById('customerName').value='';
+  saveDraft();
+}
+
+function clearOrderCode(){
+  document.getElementById('orderCode').value='';
+  saveDraft();
+}
+
+function clearCustomerQuick(){
+  document.getElementById('customerName').value='';
+  document.getElementById('orderCode').value='';
+  saveDraft();
 }
 
 function add(data={}){
@@ -429,7 +501,8 @@ function saveDraft(){
   localStorage.setItem('customerInfo', JSON.stringify({
     customerName: document.getElementById('customerName').value,
     orderCode: document.getElementById('orderCode').value,
-    finalTotal: document.getElementById('finalTotal').value
+    finalTotal: document.getElementById('finalTotal').value,
+    paymentStatus: document.getElementById('paymentStatus').value
   }));
   calculate();
 }
@@ -453,6 +526,7 @@ function saveOrder(){
 
   const customerName = document.getElementById('customerName').value.trim();
   let orderCode = document.getElementById('orderCode').value.trim();
+  const paymentStatus = document.getElementById('paymentStatus').value || 'unpaid';
   const items = getCurrentItems().filter(item => item.w > 0 && item.h > 0 && item.qty > 0);
   const calculatedTotal = items.reduce((sum,item)=>sum + item.total, 0);
   const customTotal = Number(document.getElementById('finalTotal').value || 0);
@@ -487,6 +561,7 @@ function saveOrder(){
       ...orders[index],
       orderCode,
       customerName,
+      paymentStatus,
       priceTable: currentTab,
       total,
       customTotal: customTotal > 0 ? customTotal : '',
@@ -499,9 +574,10 @@ function saveOrder(){
     localStorage.setItem('savedOrders', JSON.stringify(orders));
     saveDraft();
     renderSavedOrders();
+    showTodayOrders();
     editingOrderId = null;
     updateSaveButtonState();
-    alert('Đã cập nhật đơn thành công.');
+    alert(`Đã cập nhật đơn thành công (${paymentStatusText(paymentStatus)}).`);
     return;
   }
 
@@ -509,6 +585,7 @@ function saveOrder(){
     id: Date.now(),
     orderCode,
     customerName,
+    paymentStatus,
     priceTable: currentTab,
     total,
     customTotal: customTotal > 0 ? customTotal : '',
@@ -522,8 +599,9 @@ function saveOrder(){
   localStorage.setItem('savedOrders', JSON.stringify(orders));
   saveDraft();
   renderSavedOrders();
+  showTodayOrders();
   updateSaveButtonState();
-  alert('Đã lưu đơn thành công.');
+  alert(`Đã lưu đơn thành công (${paymentStatusText(paymentStatus)}).`);
 }
 
 function deleteSavedOrder(id){
@@ -537,6 +615,7 @@ function deleteSavedOrder(id){
   }
 
   renderSavedOrders();
+  showTodayOrders();
 }
 
 function loadSavedOrder(id){
@@ -554,6 +633,7 @@ function loadSavedOrder(id){
   document.getElementById('customerName').value = order.customerName || '';
   document.getElementById('orderCode').value = order.orderCode || '';
   document.getElementById('finalTotal').value = order.customTotal || order.total || '';
+  document.getElementById('paymentStatus').value = order.paymentStatus || 'unpaid';
   document.getElementById('list').innerHTML='';
 
   order.items.forEach(item=>{
@@ -581,13 +661,24 @@ function loadSavedOrder(id){
 
 function editSavedOrder(id){
   loadSavedOrder(id);
-  alert('Đơn đã được nạp. Bạn sửa ở ô "Tổng bill chốt" rồi bấm "Cập nhật đơn".');
+  alert('Đơn đã được nạp. Bạn có thể sửa tổng bill, trạng thái thu tiền rồi bấm Cập nhật đơn.');
 }
 
 function cancelEdit(){
   editingOrderId = null;
   updateSaveButtonState();
   alert('Đã thoát chế độ sửa đơn. Nếu bấm lưu lúc này, hệ thống sẽ tạo đơn mới.');
+}
+
+function togglePaymentStatus(id){
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+  const index = orders.findIndex(order => order.id === id);
+  if(index === -1) return;
+  orders[index].paymentStatus = orders[index].paymentStatus === 'paid' ? 'unpaid' : 'paid';
+  orders[index].updatedAt = new Date().toISOString();
+  localStorage.setItem('savedOrders', JSON.stringify(orders));
+  renderSavedOrders();
+  showTodayOrders();
 }
 
 function renderSavedOrders(){
@@ -622,8 +713,10 @@ function renderSavedOrders(){
             Tổng tự tính: <b>${f(order.calculatedTotal || order.total || 0)}</b><br>
             Tổng chốt: <b>${f(order.total || 0)}</b><br>
             Thời gian lưu: <b>${e(formatDate(order.createdAt))}</b><br>
-            ${order.updatedAt ? `Cập nhật lần cuối: <b>${e(formatDate(order.updatedAt))}</b>` : ''}
+            ${order.updatedAt ? `Cập nhật lần cuối: <b>${e(formatDate(order.updatedAt))}</b><br>` : ''}
+            Trạng thái: <b>${paymentStatusText(order.paymentStatus)}</b>
           </div>
+          <div class="${paymentStatusClass(order.paymentStatus)}">${paymentStatusText(order.paymentStatus)}</div>
         </div>
         <div style="font-weight:bold;font-size:16px;white-space:nowrap;">${f(order.total)}</div>
       </div>
@@ -635,10 +728,38 @@ function renderSavedOrders(){
       <div class="actions">
         <button class="tool mini-btn" onclick="editSavedOrder(${Number(order.id)})">Sửa tổng bill</button>
         <button class="tool mini-btn" onclick="loadSavedOrder(${Number(order.id)})">Nạp lại đơn</button>
+        <button class="tool mini-btn" onclick="togglePaymentStatus(${Number(order.id)})">Đổi trạng thái thu</button>
         <button class="del mini-btn" onclick="deleteSavedOrder(${Number(order.id)})">Xóa đơn</button>
       </div>
     </div>
   `).join('');
+}
+
+function showTodayOrders(){
+  const wrap = document.getElementById('todayOrders');
+  const preview = document.getElementById('todayPreviewText');
+  const orders = JSON.parse(localStorage.getItem('savedOrders') || '[]');
+  const todayOrders = orders.filter(order => isToday(order.createdAt));
+
+  if(!todayOrders.length){
+    wrap.innerHTML = '<div class="empty-note">Hôm nay chưa có đơn nào.</div>';
+    preview.value = '';
+    return;
+  }
+
+  preview.value = `${todayOrders.length} bill hôm nay`;
+
+  wrap.innerHTML = `
+    <div class="today-list">
+      ${todayOrders.map(order => `
+        <div class="today-line">${e(order.orderCode)} - ${e(order.customerName)} (${paymentStatusText(order.paymentStatus)})</div>
+      `).join('')}
+      <div class="today-summary">
+        Tổng số bill: <b>${todayOrders.length}</b><br>
+        Tổng tiền hôm nay: <b>${f(todayOrders.reduce((sum, order) => sum + Number(order.total || 0), 0))}</b>
+      </div>
+    </div>
+  `;
 }
 
 function switchTab(tab){
@@ -665,6 +786,7 @@ window.onload=()=>{
   document.getElementById('customerName').value = customerInfo.customerName || '';
   document.getElementById('orderCode').value = customerInfo.orderCode || '';
   document.getElementById('finalTotal').value = customerInfo.finalTotal || '';
+  document.getElementById('paymentStatus').value = customerInfo.paymentStatus || 'unpaid';
 
   if(currentTab!=='DEFAULT'){
     let data=JSON.parse(localStorage.getItem("data")||"[]");
@@ -680,9 +802,11 @@ window.onload=()=>{
     this.value = formatNumberInput(this.value);
     saveDraft();
   });
+  document.getElementById('paymentStatus').addEventListener('change', saveDraft);
   document.getElementById('orderSearch').addEventListener('input', renderSavedOrders);
 
   renderSavedOrders();
+  showTodayOrders();
   updateSaveButtonState();
   calculate();
 };
